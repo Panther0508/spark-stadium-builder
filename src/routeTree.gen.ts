@@ -9,38 +9,268 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as StandingsRouteImport } from './routes/standings'
+import { Route as PlayersRouteImport } from './routes/players'
+import { Route as MoreRouteImport } from './routes/more'
+import { Route as MatchesRouteImport } from './routes/matches'
+import { Route as HighlightsRouteImport } from './routes/highlights'
+import { Route as DownloadRouteImport } from './routes/download'
+import { Route as ChampionsRouteImport } from './routes/champions'
+import { Route as AnnouncementsRouteImport } from './routes/announcements'
+import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PlayerIdRouteImport } from './routes/player.$id'
+import { Route as MatchIdRouteImport } from './routes/match.$id'
 
+const StandingsRoute = StandingsRouteImport.update({
+  id: '/standings',
+  path: '/standings',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PlayersRoute = PlayersRouteImport.update({
+  id: '/players',
+  path: '/players',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MoreRoute = MoreRouteImport.update({
+  id: '/more',
+  path: '/more',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchesRoute = MatchesRouteImport.update({
+  id: '/matches',
+  path: '/matches',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const HighlightsRoute = HighlightsRouteImport.update({
+  id: '/highlights',
+  path: '/highlights',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const DownloadRoute = DownloadRouteImport.update({
+  id: '/download',
+  path: '/download',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const ChampionsRoute = ChampionsRouteImport.update({
+  id: '/champions',
+  path: '/champions',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AnnouncementsRoute = AnnouncementsRouteImport.update({
+  id: '/announcements',
+  path: '/announcements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AdminRoute = AdminRouteImport.update({
+  id: '/admin',
+  path: '/admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const AboutRoute = AboutRouteImport.update({
+  id: '/about',
+  path: '/about',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PlayerIdRoute = PlayerIdRouteImport.update({
+  id: '/player/$id',
+  path: '/player/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MatchIdRoute = MatchIdRouteImport.update({
+  id: '/match/$id',
+  path: '/match/$id',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
+  '/announcements': typeof AnnouncementsRoute
+  '/champions': typeof ChampionsRoute
+  '/download': typeof DownloadRoute
+  '/highlights': typeof HighlightsRoute
+  '/matches': typeof MatchesRoute
+  '/more': typeof MoreRoute
+  '/players': typeof PlayersRoute
+  '/standings': typeof StandingsRoute
+  '/match/$id': typeof MatchIdRoute
+  '/player/$id': typeof PlayerIdRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
+  '/announcements': typeof AnnouncementsRoute
+  '/champions': typeof ChampionsRoute
+  '/download': typeof DownloadRoute
+  '/highlights': typeof HighlightsRoute
+  '/matches': typeof MatchesRoute
+  '/more': typeof MoreRoute
+  '/players': typeof PlayersRoute
+  '/standings': typeof StandingsRoute
+  '/match/$id': typeof MatchIdRoute
+  '/player/$id': typeof PlayerIdRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/about': typeof AboutRoute
+  '/admin': typeof AdminRoute
+  '/announcements': typeof AnnouncementsRoute
+  '/champions': typeof ChampionsRoute
+  '/download': typeof DownloadRoute
+  '/highlights': typeof HighlightsRoute
+  '/matches': typeof MatchesRoute
+  '/more': typeof MoreRoute
+  '/players': typeof PlayersRoute
+  '/standings': typeof StandingsRoute
+  '/match/$id': typeof MatchIdRoute
+  '/player/$id': typeof PlayerIdRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths:
+    | '/'
+    | '/about'
+    | '/admin'
+    | '/announcements'
+    | '/champions'
+    | '/download'
+    | '/highlights'
+    | '/matches'
+    | '/more'
+    | '/players'
+    | '/standings'
+    | '/match/$id'
+    | '/player/$id'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to:
+    | '/'
+    | '/about'
+    | '/admin'
+    | '/announcements'
+    | '/champions'
+    | '/download'
+    | '/highlights'
+    | '/matches'
+    | '/more'
+    | '/players'
+    | '/standings'
+    | '/match/$id'
+    | '/player/$id'
+  id:
+    | '__root__'
+    | '/'
+    | '/about'
+    | '/admin'
+    | '/announcements'
+    | '/champions'
+    | '/download'
+    | '/highlights'
+    | '/matches'
+    | '/more'
+    | '/players'
+    | '/standings'
+    | '/match/$id'
+    | '/player/$id'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  AboutRoute: typeof AboutRoute
+  AdminRoute: typeof AdminRoute
+  AnnouncementsRoute: typeof AnnouncementsRoute
+  ChampionsRoute: typeof ChampionsRoute
+  DownloadRoute: typeof DownloadRoute
+  HighlightsRoute: typeof HighlightsRoute
+  MatchesRoute: typeof MatchesRoute
+  MoreRoute: typeof MoreRoute
+  PlayersRoute: typeof PlayersRoute
+  StandingsRoute: typeof StandingsRoute
+  MatchIdRoute: typeof MatchIdRoute
+  PlayerIdRoute: typeof PlayerIdRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/standings': {
+      id: '/standings'
+      path: '/standings'
+      fullPath: '/standings'
+      preLoaderRoute: typeof StandingsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/players': {
+      id: '/players'
+      path: '/players'
+      fullPath: '/players'
+      preLoaderRoute: typeof PlayersRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/more': {
+      id: '/more'
+      path: '/more'
+      fullPath: '/more'
+      preLoaderRoute: typeof MoreRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/matches': {
+      id: '/matches'
+      path: '/matches'
+      fullPath: '/matches'
+      preLoaderRoute: typeof MatchesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/highlights': {
+      id: '/highlights'
+      path: '/highlights'
+      fullPath: '/highlights'
+      preLoaderRoute: typeof HighlightsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/download': {
+      id: '/download'
+      path: '/download'
+      fullPath: '/download'
+      preLoaderRoute: typeof DownloadRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/champions': {
+      id: '/champions'
+      path: '/champions'
+      fullPath: '/champions'
+      preLoaderRoute: typeof ChampionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/announcements': {
+      id: '/announcements'
+      path: '/announcements'
+      fullPath: '/announcements'
+      preLoaderRoute: typeof AnnouncementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/admin': {
+      id: '/admin'
+      path: '/admin'
+      fullPath: '/admin'
+      preLoaderRoute: typeof AdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/about': {
+      id: '/about'
+      path: '/about'
+      fullPath: '/about'
+      preLoaderRoute: typeof AboutRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/': {
       id: '/'
       path: '/'
@@ -48,22 +278,38 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/player/$id': {
+      id: '/player/$id'
+      path: '/player/$id'
+      fullPath: '/player/$id'
+      preLoaderRoute: typeof PlayerIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/match/$id': {
+      id: '/match/$id'
+      path: '/match/$id'
+      fullPath: '/match/$id'
+      preLoaderRoute: typeof MatchIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  AboutRoute: AboutRoute,
+  AdminRoute: AdminRoute,
+  AnnouncementsRoute: AnnouncementsRoute,
+  ChampionsRoute: ChampionsRoute,
+  DownloadRoute: DownloadRoute,
+  HighlightsRoute: HighlightsRoute,
+  MatchesRoute: MatchesRoute,
+  MoreRoute: MoreRoute,
+  PlayersRoute: PlayersRoute,
+  StandingsRoute: StandingsRoute,
+  MatchIdRoute: MatchIdRoute,
+  PlayerIdRoute: PlayerIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
   ._addFileTypes<FileRouteTypes>()
-
-import type { getRouter } from './router.tsx'
-import type { startInstance } from './start.ts'
-declare module '@tanstack/react-start' {
-  interface Register {
-    ssr: true
-    router: Awaited<ReturnType<typeof getRouter>>
-    config: Awaited<ReturnType<typeof startInstance.getOptions>>
-  }
-}
