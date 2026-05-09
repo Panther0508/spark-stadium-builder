@@ -1,7 +1,7 @@
 {
-  "buildCommand": "cd hallssports-next && npm run build",
-  "devCommand": "cd hallssports-next && npm run dev",
+  "buildCommand": "npm run build --prefix hallssports-next",
+  "devCommand": "npm run dev --prefix hallssports-next",
   "framework": "nextjs",
-  "installCommand": "cd hallssports-next && npm install",
+  "installCommand": "npm install --prefix hallssports-next",
   "outputDirectory": "hallssports-next/.next"
 }
