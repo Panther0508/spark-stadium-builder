@@ -1,0 +1,23 @@
+{
+  "name": "HallsSports",
+  "short_name": "HallsSports",
+  "description": "Live Football, Proudly Futoite – real-time stats for FUTO hostel competitions.",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#0F0F0F",
+  "theme_color": "#00A859",
+  "icons": [
+    {
+      "src": "/favicon.png",
+      "sizes": "any",
+      "type": "image/png"
+    },
+    {
+      "src": "/icons/maskable-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+      // NOTE: This is a placeholder. Replace with a proper maskable icon that has a safe zone (80% inner area) to avoid clipping.
+    }
+  ]
+}
