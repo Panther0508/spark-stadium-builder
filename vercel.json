@@ -3,6 +3,5 @@
   "devCommand": "cd hallssports-next && npm run dev",
   "framework": "nextjs",
   "installCommand": "cd hallssports-next && npm install",
-  "outputDirectory": "hallssports-next/.next",
-  "root": "hallssports-next"
+  "outputDirectory": "hallssports-next/.next"
 }
