@@ -77,8 +77,8 @@ export default function RootLayout({
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
         />
-        <AppleMetaTags />
-        {/* <meta name="google-site-verification" content="PLACEHOLDER_FOR_VERIFICATION" /> */}
+         <AppleMetaTags />
+         <meta name="google-site-verification" content="google9c4a7634a6ae6735" />
       </head>
       <body className="min-h-full flex flex-col custom-scrollbar">
         <SkipToContent />
