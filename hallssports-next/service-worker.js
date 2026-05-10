@@ -1,35 +1,49 @@
-// Custom Service Worker for HallsSports
-// Includes push notification handling
+/* eslint-disable no-restricted-globals */
 
-self.addEventListener("push", (event: ExtendableEvent) => {
-  const payload = event.data?.json() ?? {};
+// Custom Service Worker for HallsSports
+// Includes push notification handling and Workbox precaching
+
+// Important for next-pwa: Injects the precache manifest
+// @ts-ignore
+if (typeof importScripts === 'function') {
+  // eslint-disable-next-line no-undef
+  // @ts-ignore
+  importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.4.1/workbox-sw.js');
+}
+
+// @ts-ignore
+if (self.workbox) {
+  // @ts-ignore
+  self.workbox.precaching.precacheAndRoute(self.__WB_MANIFEST || []);
+}
+
+self.addEventListener("push", (event) => {
+  const payload = event.data ? event.data.json() : {};
 
   const { title, body, icon, data } = payload;
 
-  const options: NotificationOptions = {
-    body: body ?? "",
-    icon: icon ?? "/favicon.png",
+  const options = {
+    body: body || "",
+    icon: icon || "/favicon.png",
     badge: "/favicon.png",
-    data: data ?? {},
-    // You can add actions, vibrate, etc.
+    data: data || {},
   };
 
-  event.waitUntil(self.registration.showNotification(title ?? "HallsSports", options));
+  event.waitUntil(self.registration.showNotification(title || "HallsSports", options));
 });
 
-self.addEventListener("notificationclick", (event: NotificationEvent) => {
+self.addEventListener("notificationclick", (event) => {
   event.notification.close();
 
-  const target = event.notification.data?.url ?? "/";
+  const target = (event.notification.data && event.notification.data.url) || "/";
 
   event.waitUntil(
-    (async (): Promise<void> => {
+    (async () => {
       const clients = await self.clients.matchAll({
         type: "window",
         includeUncontrolled: true,
       });
 
-      // Try to focus an existing tab with the target URL
       for (const client of clients) {
         if (client.url === target && "focus" in client) {
           client.focus();
@@ -37,7 +51,6 @@ self.addEventListener("notificationclick", (event: NotificationEvent) => {
         }
       }
 
-      // Open a new tab if no matching client
       if (self.clients.openWindow) {
         await self.clients.openWindow(target);
       }

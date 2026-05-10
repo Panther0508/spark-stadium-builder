@@ -13,11 +13,22 @@
       "type": "image/png"
     },
     {
+      "src": "/icons/icon-192x192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512x512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
       "src": "/icons/maskable-512x512.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
-      // NOTE: This is a placeholder. Replace with a proper maskable icon that has a safe zone (80% inner area) to avoid clipping.
     }
   ]
 }
