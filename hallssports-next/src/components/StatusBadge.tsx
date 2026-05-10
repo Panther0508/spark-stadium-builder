@@ -32,10 +32,16 @@ export function StatusBadge({ status, minute, isPolling }: { status: MatchStatus
   </span>;
 }
 
-export function TeamLogo({ name, color }: { name: string; color: string }) {
+export function TeamLogo({ name, color, size = "md" }: { name: string; color: string; size?: "sm" | "md" | "lg" }) {
+  const sizeClasses = {
+    sm: "h-6 w-6 text-[8px]",
+    md: "h-10 w-10 text-xs",
+    lg: "h-16 w-16 text-lg",
+  };
+
   return (
     <div
-      className="h-10 w-10 rounded-full grid place-items-center text-xs font-bold ring-1 ring-white/20"
+      className={cn(sizeClasses[size], "rounded-full grid place-items-center font-bold ring-1 ring-white/20")}
       style={{ background: color, boxShadow: `0 0 16px ${color}66` }}
     >
       {name

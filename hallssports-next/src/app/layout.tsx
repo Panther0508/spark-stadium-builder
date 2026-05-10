@@ -11,6 +11,7 @@ import SceneController from "@/components/SceneController";
 import { FeedbackButtonProvider } from "@/components/FeedbackButtonProvider";
 import { Space_Grotesk } from "next/font/google";
 import { AdminNavButton } from "@/components/AdminNavButton";
+import { AnimatePresence } from "framer-motion";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -89,12 +90,6 @@ export default function RootLayout({
         <div className="fixed top-4 right-4 z-50">
           <AdminNavButton />
         </div>
-import { AnimatePresence } from "framer-motion";
-
-// ... existing imports ...
-
-export default function RootLayout({
-...
         <ThemeProvider>
           <ToastProvider>
             <OfflineBanner />

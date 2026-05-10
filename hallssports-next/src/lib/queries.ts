@@ -69,6 +69,7 @@ const mockMatches: Match[] = [
     match_date: new Date().toISOString(),
     featured: true,
     is_verified: true,
+    community_visible: true,
     venue: 'Etihad Stadium',
   },
   {
@@ -81,6 +82,7 @@ const mockMatches: Match[] = [
     match_date: new Date().toISOString(),
     featured: false,
     is_verified: true,
+    community_visible: true,
     venue: 'Emirates Stadium',
   },
   {
@@ -91,6 +93,7 @@ const mockMatches: Match[] = [
     match_date: new Date(Date.now() + 86400000).toISOString(),
     featured: false,
     is_verified: true,
+    community_visible: true,
     venue: 'Old Trafford',
   },
 ];

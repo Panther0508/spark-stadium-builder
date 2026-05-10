@@ -20,6 +20,7 @@ type Match = {
   venue?: string;
   image_url?: string;
   is_verified?: boolean;
+  community_visible?: boolean;
 };
 
 export default function MatchesPage() {
@@ -39,6 +40,7 @@ export default function MatchesPage() {
     venue: "",
     image_url: "",
     featured: false,
+    community_visible: false,
   });
 
   useEffect(() => {
@@ -119,7 +121,7 @@ export default function MatchesPage() {
           <button
             onClick={() => {
               setEditingMatch(null);
-              setFormData({ home_team: "", away_team: "", match_date: "", venue: "", image_url: "", featured: false });
+              setFormData({ home_team: "", away_team: "", match_date: "", venue: "", image_url: "", featured: false, community_visible: false });
               setModalOpen(true);
             }}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"

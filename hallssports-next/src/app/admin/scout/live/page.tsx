@@ -6,6 +6,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useState, useEffect } from "react";
 import { Plus, Minus } from "lucide-react";
+import { useToast } from "@/components/ToastProvider";
 import { adminSelect, adminUpdate, adminInsert } from "@/app/admin/actions";
 
 type Match = {
@@ -20,6 +21,7 @@ type Match = {
 
 export default function LiveScorePage() {
   const { loading } = useAdminAuth("scout");
+  const { addToast } = useToast();
 
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);

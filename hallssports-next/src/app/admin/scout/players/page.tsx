@@ -88,6 +88,25 @@ export default function PlayersPage() {
      }
   };
 
+  const handleExport = () => {
+    const csv = Papa.unparse(players.map(p => ({
+      name: p.name,
+      team: p.team,
+      position: p.position,
+      number: p.number,
+      verified: p.is_verified
+    })));
+    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    link.setAttribute("href", url);
+    link.setAttribute("download", "hallssports_players.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  };
+
   const handleImport = async () => {
     if (!csvPreview.length) return;
     try {
