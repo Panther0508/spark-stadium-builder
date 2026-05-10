@@ -47,11 +47,11 @@ export default function MorePage() {
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   return (
-    <PageShell title="More" className="pb-20">
+    <PageShell title="More">
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="space-y-4"
+        className="space-y-4 pb-20"
       >
         <div className="flex items-center gap-4 mb-4">
           <button

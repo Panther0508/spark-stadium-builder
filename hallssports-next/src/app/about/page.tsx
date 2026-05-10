@@ -35,7 +35,7 @@ export default function AboutPage() {
     const fetchSettings = async () => {
       try {
         const data = await adminSelect('settings') as Array<{ key: string; value: string }>;
-        const settingsObj: any = { ...MOCK_ABOUT_SETTINGS };
+        const settingsObj: Record<string, any> = { ...MOCK_ABOUT_SETTINGS };
         
         if (data) {
           data.forEach(s => {

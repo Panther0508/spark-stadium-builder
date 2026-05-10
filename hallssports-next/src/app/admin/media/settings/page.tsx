@@ -17,6 +17,8 @@ type Person = {
   photo?: string;
 };
 
+type EditingPerson = Person & { _index?: number };
+
 type Settings = {
   tournament_name: string;
   about_description: string;
@@ -40,7 +42,7 @@ export default function SettingsPage() {
   const [saving, setSaving] = useState(false);
   const [showPersonModal, setShowPersonModal] = useState(false);
   const [currentPanel, setCurrentPanel] = useState<"organizers" | "contributors">("organizers");
-  const [editingPerson, setEditingPerson] = useState<Person | null>(null);
+  const [editingPerson, setEditingPerson] = useState<EditingPerson | null>(null);
   const [personForm, setPersonForm] = useState({ name: "", role: "", photo: "" });
 
   useEffect(() => {
@@ -59,7 +61,7 @@ export default function SettingsPage() {
               acc[s.key] = s.value;
             }
             return acc;
-          }, {} as Partial<Settings>);
+          }, {} as Record<string, any>);
           setSettings(prev => ({ ...prev, ...settingsObj }));
         }
       } catch {
@@ -121,8 +123,8 @@ export default function SettingsPage() {
       photo: personForm.photo,
     };
 
-    if (editingPerson && (editingPerson as any)._index !== undefined) {
-      const index = (editingPerson as any)._index;
+    if (editingPerson && editingPerson._index !== undefined) {
+      const index = editingPerson._index;
       const newPeople = [...settings[currentPanel]];
       newPeople[index] = person;
       setSettings({ ...settings, [currentPanel]: newPeople });
