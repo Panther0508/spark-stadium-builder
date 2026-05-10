@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import { HallsSymbol } from "@/components/HallsSymbol";
-import { BottomNav } from "@/components/BottomNav";
+import { BottomNavWrapper } from "@/components/BottomNavWrapper";
 import { ClientLayout } from "@/components/ClientLayout";
 import { ToastProvider } from "@/components/ToastProvider";
 import { OfflineBanner } from "@/components/OfflineBanner";
@@ -89,15 +89,23 @@ export default function RootLayout({
         <div className="fixed top-4 right-4 z-50">
           <AdminNavButton />
         </div>
+import { AnimatePresence } from "framer-motion";
+
+// ... existing imports ...
+
+export default function RootLayout({
+...
         <ThemeProvider>
           <ToastProvider>
             <OfflineBanner />
             <ClientLayout>
-              {children}
+              <AnimatePresence mode="wait">
+                {children}
+              </AnimatePresence>
             </ClientLayout>
           </ToastProvider>
         </ThemeProvider>
-        <BottomNav />
+        <BottomNavWrapper />
         <FeedbackButtonProvider />
       </body>
     </html>

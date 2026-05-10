@@ -12,7 +12,6 @@ export function ClientLayout({ children }: { children: ReactNode }) {
         {children}
       </ErrorBoundary>
       <CookieConsent />
-      <FloatingFeedback />
     </>
   );
 }

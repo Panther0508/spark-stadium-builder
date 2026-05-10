@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { Shield, LogOut } from "lucide-react";
+import { Shield, LogOut, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
 
 const ADMIN_ROLES = ["scout", "media", "verifier"] as const;
@@ -58,7 +58,7 @@ export function AdminNavButton() {
       className="p-2 rounded-lg glass hover:bg-white/10 transition-colors"
       aria-label="Admin login"
     >
-      <Shield className="w-5 h-5 text-primary" />
+      <Lock className="w-5 h-5 text-primary" />
     </Link>
   );
 }

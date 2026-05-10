@@ -7,9 +7,10 @@ export function PageShell({ title, children }: { title?: string; children: React
   return (
     <motion.main
       id="main-content"
-      initial={{ opacity: 0, y: 16 }}
+      initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.35, ease: "easeOut" }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.4, ease: [0.22, 1, 0.36, 1] }}
       className="px-4 pt-4 pb-28 max-w-3xl mx-auto"
     >
       {title && <h1 className="text-3xl font-bold mb-4 text-glow">{title}</h1>}

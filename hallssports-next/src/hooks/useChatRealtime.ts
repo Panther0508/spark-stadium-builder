@@ -17,7 +17,8 @@ interface UseChatRealtimeResult {
 
 export function useChatRealtime(
   matchId: string,
-  initialMessages: MatchChat[]
+  initialMessages: MatchChat[],
+  onGoal?: (event: { match_id: string; team: string; player_name: string }) => void
 ): UseChatRealtimeResult {
   const [messages, setMessages] = useState<MatchChat[]>(initialMessages);
   const [status, setStatus] = useState<ConnectionStatus>("idle");
@@ -79,6 +80,15 @@ export function useChatRealtime(
             return updated;
           });
           knownIdsRef.current.add(newMsg.id);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "match_events", filter: `match_id=eq.${matchId}` },
+        (payload: { new: any }) => {
+          if (payload.new.type === 'goal' && onGoal) {
+            onGoal(payload.new);
+          }
         }
       )
       .subscribe((status, err) => {

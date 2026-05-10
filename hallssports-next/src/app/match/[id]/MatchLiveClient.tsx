@@ -1,5 +1,7 @@
 "use client";
 
+import { useState, useCallback } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { PageShell } from "@/components/PageShell";
 import Link from "next/link";
@@ -26,9 +28,20 @@ export default function MatchLiveClient({
   initialMatch,
   initialEvents,
 }: MatchLiveClientProps) {
+  const [celebration, setCelebration] = useState<{ active: boolean; text: string } | null>(null);
+
+  const handleGoal = useCallback((event: MatchEvent) => {
+    setCelebration({
+      active: true,
+      text: `GOAL! ${event.player_name} scores!`
+    });
+    setTimeout(() => setCelebration(null), 10000);
+  }, []);
+
   const { match, events, isPolling, error } = useMatchRealtime(
     initialMatch,
-    initialEvents
+    initialEvents,
+    handleGoal
   );
 
   if (!match) {
@@ -56,6 +69,27 @@ export default function MatchLiveClient({
   return (
     <>
       <PageShell>
+        <AnimatePresence>
+          {celebration && (
+            <motion.div
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1.2, opacity: 1 }}
+              exit={{ scale: 0, opacity: 0 }}
+              className="fixed inset-0 z-[100] flex flex-col items-center justify-center pointer-events-none"
+            >
+               <motion.div 
+                animate={{ rotate: [0, 10, -10, 0], scale: [1, 1.1, 1] }}
+                transition={{ duration: 0.5, repeat: Infinity }}
+                className="bg-primary text-white px-10 py-5 rounded-3xl shadow-[0_0_50px_rgba(0,168,89,0.8)] border-4 border-white/50 text-center"
+               >
+                 <h2 className="text-6xl font-black italic mb-2 tracking-tighter">GOALLL!!!</h2>
+                 <p className="text-xl font-bold uppercase tracking-widest">{celebration.text.split('! ')[1]}</p>
+               </motion.div>
+               {/* Confetti simulation would go here */}
+            </motion.div>
+          )}
+        </AnimatePresence>
+
         <Link
           href="/matches"
           className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-3"
@@ -69,7 +103,7 @@ export default function MatchLiveClient({
           </div>
         )}
 
-         <GlassCard className="p-6 mb-4">
+         <GlassCard className={`p-6 mb-4 transition-all duration-500 ${celebration ? "border-primary shadow-[0_0_30px_rgba(0,168,89,0.4)] scale-[1.02]" : ""}`}>
            <div className="flex items-center justify-between mb-4">
              <StatusBadge
                status={match.status}
@@ -85,11 +119,16 @@ export default function MatchLiveClient({
                <div className="text-center">
                  <div className="text-2xl font-bold">{match.home_team}</div>
                </div>
-               <div className="text-4xl font-black" aria-live="polite">
+               <motion.div 
+                 animate={celebration ? { scale: [1, 1.4, 1], color: ["#fff", "#FFD700", "#fff"] } : {}}
+                 transition={{ duration: 0.4, repeat: celebration ? 4 : 0 }}
+                 className="text-4xl font-black tabular-nums" 
+                 aria-live="polite"
+               >
                  {match.status === "scheduled"
                    ? "—"
                    : `${match.home_score ?? 0} : ${match.away_score ?? 0}`}
-               </div>
+               </motion.div>
                <div className="text-center">
                  <div className="text-2xl font-bold">{match.away_team}</div>
                </div>
@@ -105,8 +144,10 @@ export default function MatchLiveClient({
              <h3 className="font-bold mb-3">Match Events</h3>
              <div className="space-y-2">
                {events.map((event) => (
-                 <div
+                 <motion.div
                    key={event.id}
+                   initial={{ opacity: 0, x: -10 }}
+                   animate={{ opacity: 1, x: 0 }}
                    className="flex items-center gap-3 text-sm"
                    aria-live="polite"
                  >
@@ -120,7 +161,7 @@ export default function MatchLiveClient({
                        (Assist: {event.assist})
                      </span>
                    )}
-                 </div>
+                 </motion.div>
                ))}
              </div>
            </GlassCard>
@@ -131,7 +172,7 @@ export default function MatchLiveClient({
             <ShareButton
               title={`${match.home_team} vs ${match.away_team} - Match Stats`}
               text={`Check out the match stats for ${match.home_team} vs ${match.away_team} on HallsSports! ⚽`}
-              url={`${process.env.NEXT_PUBLIC_SITE_URL}/match/${match.id}`}
+              url={`${process.env.NEXT_PUBLIC_SITE_URL || ''}/match/${match.id}`}
             />
           </div>
         )}
@@ -139,5 +180,3 @@ export default function MatchLiveClient({
     </>
   );
 }
-
-// Helper component for PageShell since it's not imported above? Let's add import.

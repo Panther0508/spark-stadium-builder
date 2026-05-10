@@ -34,10 +34,15 @@ export default function ReferralPage() {
         .select("*", { count: "exact", head: true })
         .eq("referrer_code", code);
 
-      if (error) throw error;
+      if (error) {
+        console.warn("Referrals table might be missing or inaccessible:", error);
+        setReferralCount(0);
+        return;
+      }
       setReferralCount(count || 0);
-    } catch {
-      setError(true);
+    } catch (err) {
+      console.error("Referral fetch error:", err);
+      setReferralCount(0);
     } finally {
       setLoading(false);
     }

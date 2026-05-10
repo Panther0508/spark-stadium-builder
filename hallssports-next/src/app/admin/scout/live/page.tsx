@@ -6,7 +6,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useState, useEffect } from "react";
 import { Plus, Minus } from "lucide-react";
-import { adminSelect, adminUpdate } from "@/app/admin/actions";
+import { adminSelect, adminUpdate, adminInsert } from "@/app/admin/actions";
 
 type Match = {
   id: string;
@@ -24,10 +24,45 @@ export default function LiveScorePage() {
   const [matches, setMatches] = useState<Match[]>([]);
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [loadingData, setLoadingData] = useState(true);
-  const [minute] = useState(0);
+  const [minute, setMinute] = useState(0);
 
-  // Filter for scheduled/live matches only
-  const activeMatches = matches.filter(m => m.status === "scheduled" || m.status === "live");
+  // Auto-calculate minute from match_date if live
+  useEffect(() => {
+    if (!selectedMatch || selectedMatch.status !== "live") return;
+    
+    const interval = setInterval(() => {
+      const start = new Date(selectedMatch.match_date).getTime();
+      const now = Date.now();
+      const diff = Math.floor((now - start) / 60000);
+      setMinute(Math.max(0, diff));
+    }, 10000);
+
+    return () => clearInterval(interval);
+  }, [selectedMatch]);
+
+  const handleQuickAction = async (type: "goal" | "yellow" | "red", team: "home" | "away") => {
+    if (!selectedMatch) return;
+    const playerName = prompt(`Enter player name for ${type}:`);
+    if (!playerName) return;
+
+    try {
+      await adminInsert("match_events", {
+        match_id: selectedMatch.id,
+        type,
+        player_name: playerName,
+        minute,
+        team: team === "home" ? selectedMatch.home_team : selectedMatch.away_team,
+        is_verified: false,
+      });
+
+      if (type === "goal") {
+        await handleScoreChange(team, true);
+      }
+      alert("Action logged and pending verification.");
+    } catch (err) {
+      console.error("Action log error:", err);
+    }
+  };
 
   useEffect(() => {
     const fetchMatches = async () => {
@@ -42,6 +77,21 @@ export default function LiveScorePage() {
     };
     fetchMatches();
   }, []);
+
+  // Filter for scheduled/live matches only
+  const activeMatches = matches.filter(m => m.status === "scheduled" || m.status === "live");
+
+  const handleStatusChange = async (newStatus: "live" | "half-time" | "finished") => {
+    if (!selectedMatch) return;
+    if (!confirm(`Change match status to ${newStatus}?`)) return;
+    try {
+      await adminUpdate('matches', { id: selectedMatch.id }, { status: newStatus });
+      setSelectedMatch({ ...selectedMatch, status: newStatus });
+      addToast({ type: "success", title: `Match set to ${newStatus}` });
+    } catch {
+      addToast({ type: "error", title: "Failed to update status" });
+    }
+  };
 
   const handleScoreChange = async (team: "home" | "away", increment: boolean) => {
     if (!selectedMatch) return;
@@ -129,12 +179,40 @@ export default function LiveScorePage() {
             </AdminCard>
 
             <AdminCard className="p-6">
+              <h3 className="font-bold mb-3">Match Lifecycle</h3>
+              <div className="flex gap-2">
+                <button 
+                  onClick={() => handleStatusChange("live")} 
+                  disabled={selectedMatch.status === "live"}
+                  className="flex-1 py-2 bg-green-500/20 text-green-400 rounded-lg text-sm font-bold disabled:opacity-50"
+                >
+                  Start Match
+                </button>
+                <button 
+                  onClick={() => handleStatusChange("half-time")} 
+                  disabled={selectedMatch.status === "half-time"}
+                  className="flex-1 py-2 bg-yellow-500/20 text-yellow-400 rounded-lg text-sm font-bold disabled:opacity-50"
+                >
+                  Half-Time
+                </button>
+                <button 
+                  onClick={() => handleStatusChange("finished")} 
+                  className="flex-1 py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-bold"
+                >
+                  Full-Time
+                </button>
+              </div>
+            </AdminCard>
+
+            <AdminCard className="p-6">
               <h3 className="font-bold mb-3">Quick Actions</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                <button className="py-2 bg-primary/20 rounded-lg text-sm">Home Goal</button>
-                <button className="py-2 bg-primary/20 rounded-lg text-sm">Away Goal</button>
-                <button className="py-2 bg-yellow-500/20 rounded-lg text-sm">Yellow Card</button>
-                <button className="py-2 bg-red-500/20 rounded-lg text-sm">Red Card</button>
+                <button onClick={() => handleQuickAction("goal", "home")} className="py-2 bg-primary/20 rounded-lg text-sm">Home Goal</button>
+                <button onClick={() => handleQuickAction("goal", "away")} className="py-2 bg-primary/20 rounded-lg text-sm">Away Goal</button>
+                <button onClick={() => handleQuickAction("yellow", "home")} className="py-2 bg-yellow-500/20 rounded-lg text-sm">Home Yellow</button>
+                <button onClick={() => handleQuickAction("red", "home")} className="py-2 bg-red-500/20 rounded-lg text-sm">Home Red</button>
+                <button onClick={() => handleQuickAction("yellow", "away")} className="py-2 bg-yellow-500/20 rounded-lg text-sm">Away Yellow</button>
+                <button onClick={() => handleQuickAction("red", "away")} className="py-2 bg-red-500/20 rounded-lg text-sm">Away Red</button>
               </div>
             </AdminCard>
           </>

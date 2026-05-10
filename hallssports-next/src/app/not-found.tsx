@@ -6,7 +6,7 @@ import { motion } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { Home } from "lucide-react";
 
-const DEFAULT_FEEDBACK_URL = "https://forms.gle/yourfeedbackform";
+const DEFAULT_FEEDBACK_URL = process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL || "https://forms.gle/yourfeedbackform";
 
 export default function NotFound() {
   const [feedbackUrl, setFeedbackUrl] = useState(DEFAULT_FEEDBACK_URL);

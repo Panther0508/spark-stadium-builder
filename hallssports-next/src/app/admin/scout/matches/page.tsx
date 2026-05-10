@@ -190,6 +190,27 @@ export default function MatchesPage() {
                 placeholder="Stadium name"
               />
             </AdminFormField>
+
+            <AdminFormField label="Cover Image URL">
+              <input
+                type="url"
+                value={formData.image_url}
+                onChange={e => setFormData({ ...formData, image_url: e.target.value })}
+                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
+                placeholder="https://cloudinary.com/..."
+              />
+            </AdminFormField>
+
+            <div className="flex items-center gap-2 py-2">
+              <input
+                type="checkbox"
+                id="community_visible"
+                checked={formData.community_visible}
+                onChange={e => setFormData({ ...formData, community_visible: e.target.checked })}
+                className="w-4 h-4 rounded border-white/20 bg-white/5"
+              />
+              <label htmlFor="community_visible" className="text-sm font-medium">Visible to Community (Chat Selection)</label>
+            </div>
             
             <button onClick={handleSave} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">
               Save

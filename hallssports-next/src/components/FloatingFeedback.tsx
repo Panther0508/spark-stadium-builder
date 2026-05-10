@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { MessageSquare } from "lucide-react";
 
-const DEFAULT_FEEDBACK_URL = "https://forms.gle/yourfeedbackform";
+const DEFAULT_FEEDBACK_URL = process.env.NEXT_PUBLIC_FEEDBACK_FORM_URL || "https://forms.gle/yourfeedbackform";
 
 export function FloatingFeedback() {
   const [show, setShow] = useState(() => {

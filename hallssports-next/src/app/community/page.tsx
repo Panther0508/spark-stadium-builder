@@ -1,9 +1,9 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, Suspense } from "react";
+import { useEffect, useState, useRef, useMemo, Suspense, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, MessageCircle, Shield, AlertCircle, Loader2, RefreshCw } from "lucide-react";
+import { Send, MessageCircle, Shield, AlertCircle, Loader2, RefreshCw, Trophy } from "lucide-react";
 import { toast } from "sonner";
 import { GlassCard } from "@/components/GlassCard";
 import { PageShell } from "@/components/PageShell";
@@ -11,7 +11,8 @@ import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { StatusBadge, TeamLogo, type MatchStatus } from "@/components/StatusBadge";
 import { formatDistanceToNow } from "date-fns";
 import { useChatRealtime } from "@/hooks/useChatRealtime";
-import type { MatchChat, Match } from "@/lib/queries";
+import type { MatchChat, Match, MatchEvent } from "@/lib/queries";
+import { FanClubGate } from "@/components/FanClubGate";
 
 const BLACKLIST = ["spam", "scam", "idiot", "stupid"];
 
@@ -62,9 +63,13 @@ function groupMessages(messages: MatchChat[]): MatchChat[][] {
 
 function CommunityContent() {
   const searchParams = useSearchParams();
-  const paramMatchId = searchParams.get("matchId");
-  const [matchId, setMatchId] = useState<string | null>(paramMatchId);
+  
+  const [activeMatch, setActiveMatch] = useState<{ match_id: string; match_name: string } | null>(null);
+  const [showGate, setShowGate] = useState(false);
+  
+  const [matchId, setMatchId] = useState<string | null>(null);
   const [matchInfo, setMatchInfo] = useState<{
+    id: string;
     home_team: string;
     away_team: string;
     venue?: string;
@@ -80,51 +85,24 @@ function CommunityContent() {
   const [newMessage, setNewMessage] = useState("");
   const [isSending, setIsSending] = useState(false);
   const [moderationError, setModerationError] = useState<string | null>(null);
-  const [isDev] = useState(process.env.NODE_ENV === "development");
-  const [mockMatchStatus, setMockMatchStatus] = useState<"scheduled" | "live" | "finished">("live");
+  const [celebration, setCelebration] = useState<{ active: boolean; text: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const storedUsername = getUsername();
+  // Initial gate check
   useEffect(() => {
-    if (!storedUsername) {
-      requestAnimationFrame(() => setShowUsernameGate(true));
-    }
-  }, [storedUsername]);
-
-  // Determine matchId from query param or fetch live match
-  useEffect(() => {
-    if (paramMatchId) {
-      // Use microtask to avoid setState-in-effect rule
-      queueMicrotask(() => setMatchId(paramMatchId));
-      return;
-    }
-
-    // Fetch matches to pick a live one
-    const fetchMatches = async () => {
+    const stored = localStorage.getItem("hallssports_active_match");
+    if (stored) {
       try {
-        const res = await fetch("/api/matches");
-        if (!res.ok) throw new Error("Failed to fetch matches");
-        const matches: Match[] = await res.json();
-        // Prefer live, then scheduled, then any
-        const selected = (
-          matches.find((m) => m.status === "live") ||
-          matches.find((m) => m.status === "scheduled") ||
-          matches[0]
-        );
-        if (selected) {
-          setMatchId(selected.id);
-        } else {
-          setError("No matches available");
-        }
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to get match");
-      } finally {
-        setLoading(false);
+        const parsed = JSON.parse(stored);
+        setActiveMatch(parsed);
+        setMatchId(parsed.match_id);
+      } catch {
+        setShowGate(true);
       }
-    };
-
-    fetchMatches();
-  }, [paramMatchId]);
+    } else {
+      setShowGate(true);
+    }
+  }, []);
 
   // When matchId is set, fetch match details
   useEffect(() => {
@@ -135,16 +113,20 @@ function CommunityContent() {
         const res = await fetch(`/api/live-score?matchId=${matchId}`);
         if (!res.ok) throw new Error("Failed to fetch match");
         const data = await res.json();
+        
         setMatchInfo(data);
+        setLoading(false);
       } catch (e) {
         console.error("Failed to load match", e);
+        setError("Match not found or no longer active");
+        setLoading(false);
       }
     };
 
     fetchMatch();
   }, [matchId]);
 
-  // Fetch initial messages for this matchId (not using hook yet because we need to pass initial messages)
+  // Fetch initial messages
   const [initialMessages, setInitialMessages] = useState<MatchChat[]>([]);
   const [messagesError, setMessagesError] = useState<string | null>(null);
 
@@ -156,25 +138,36 @@ function CommunityContent() {
         const res = await fetch(`/api/chat?matchId=${matchId}`);
         if (!res.ok) throw new Error("Failed to fetch messages");
         const data: MatchChat[] = await res.json();
-        // API returns descending (newest first). Reverse to chronological order for UI.
         setInitialMessages(data.reverse());
       } catch (e) {
         setMessagesError(e instanceof Error ? e.message : "Failed to load messages");
-      } finally {
-        setLoading(false);
       }
     };
 
     fetchMessages();
   }, [matchId]);
 
+  const handleGoal = useCallback((event: any) => {
+    setCelebration({
+      active: true,
+      text: `⚽ GOAL! ${event.player_name} scores for ${event.team}!`
+    });
+    
+    setTimeout(() => setCelebration(null), 8000);
+  }, []);
+
   const { messages, isPolling } = useChatRealtime(
     matchId || "",
-    initialMessages
+    initialMessages,
+    handleGoal
   );
 
-  // Combine loading states
-  const isLoading = loading || !matchId;
+  const handleGateSelect = (selection: { match_id: string; match_name: string }) => {
+    setActiveMatch(selection);
+    setMatchId(selection.match_id);
+    setShowGate(false);
+    setLoading(true);
+  };
 
   const handleUsernameSubmit = () => {
     const trimmed = usernameInput.trim();
@@ -227,17 +220,27 @@ function CommunityContent() {
     }
   };
 
+  const storedUsername = getUsername();
+  useEffect(() => {
+    if (!storedUsername && !showGate) {
+      requestAnimationFrame(() => setShowUsernameGate(true));
+    }
+  }, [storedUsername, showGate]);
+
   const isChatLocked =
     !matchInfo || matchInfo.status === "scheduled" || matchInfo.status === "finished";
 
   const groupedMessages = useMemo(() => groupMessages(messages), [messages]);
 
-  // Scroll to bottom on new messages
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages]);
 
-  if (isLoading) {
+  if (showGate) {
+    return <FanClubGate onSelect={handleGateSelect} />;
+  }
+
+  if (loading || !matchId) {
     return (
       <PageShell title="Community">
         <ShimmerLoader height={500} width="100%" />
@@ -251,10 +254,10 @@ function CommunityContent() {
         <GlassCard className="p-6 text-center">
           <p className="text-red-400 mb-2">Error: {error || "Match not found"}</p>
           <button
-            onClick={() => window.location.reload()}
+            onClick={() => setShowGate(true)}
             className="text-primary underline"
           >
-            Retry
+            Choose another match
           </button>
         </GlassCard>
       </PageShell>
@@ -263,6 +266,20 @@ function CommunityContent() {
 
   return (
     <PageShell title="Community">
+      <AnimatePresence>
+        {celebration && (
+          <motion.div
+            initial={{ y: -100, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            exit={{ y: -100, opacity: 0 }}
+            className="fixed top-20 left-1/2 -translate-x-1/2 z-[60] glass-strong px-6 py-3 rounded-full border-primary/50 shadow-[0_0_20px_rgba(0,168,89,0.4)] flex items-center gap-3"
+          >
+            <span className="text-xl">🎉</span>
+            <span className="font-bold text-primary">{celebration.text}</span>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
@@ -307,7 +324,7 @@ function CommunityContent() {
         </AnimatePresence>
 
         {/* Match Header */}
-        <GlassCard className="p-4">
+        <GlassCard className={`p-4 transition-all duration-500 ${celebration ? "border-primary shadow-[0_0_15px_rgba(0,168,89,0.3)]" : ""}`}>
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <TeamLogo
@@ -323,100 +340,87 @@ function CommunityContent() {
                 </p>
               </div>
             </div>
-            <StatusBadge status={matchInfo.status} minute={matchInfo.minute} isPolling={isPolling} />
+            <div className="flex flex-col items-end gap-1">
+              <StatusBadge status={matchInfo.status} minute={matchInfo.minute} isPolling={isPolling} />
+              <button onClick={() => setShowGate(true)} className="text-[10px] text-primary hover:underline">Change match</button>
+            </div>
           </div>
           <div className="text-center mt-3 text-2xl font-bold">
-            {matchInfo.home_score ?? 0} : {matchInfo.away_score ?? 0}
-          </div>
-          {isPolling && (
-            <div className="mt-2 text-center">
-              <span className="inline-flex items-center gap-1.5 text-xs text-muted-foreground">
-                <RefreshCw className="h-3 w-3 animate-spin" />
-                Updates are delayed
-              </span>
-            </div>
-          )}
-        </GlassCard>
-
-        {/* Dev Toggle Button */}
-        {isDev && (
-          <div className="flex justify-center">
-            <button
-              onClick={() => {
-                setMockMatchStatus((prev) => {
-                  if (prev === "scheduled") return "live";
-                  if (prev === "live") return "finished";
-                  return "scheduled";
-                });
-              }}
-              className="px-3 py-1 text-xs bg-primary/20 rounded-lg"
+            <motion.span
+              animate={celebration ? { scale: [1, 1.3, 1], color: ["#fff", "#00A859", "#fff"] } : {}}
+              transition={{ duration: 0.5, repeat: celebration ? 2 : 0 }}
             >
-              Toggle Match Status ({mockMatchStatus})
-            </button>
+              {matchInfo.home_score ?? 0} : {matchInfo.away_score ?? 0}
+            </motion.span>
           </div>
-        )}
+        </GlassCard>
 
         {/* Status Info */}
         <div className="text-center text-xs text-muted-foreground">
-          Messages are kept for 24 hours after full-time.
+          Follow {activeMatch?.match_name}. Support your club!
         </div>
 
         {/* Chat Area */}
-        <GlassCard className="p-4">
-          <div className="flex items-center gap-2 mb-4">
-            <MessageCircle className="h-5 w-5 text-primary" />
-            <h3 className="font-bold">Match Chat</h3>
+        <GlassCard className={`p-4 h-[500px] flex flex-col transition-all duration-500 ${celebration ? "ring-2 ring-primary/50" : ""}`}>
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-2">
+              <MessageCircle className="h-5 w-5 text-primary" />
+              <h3 className="font-bold">Community Chat</h3>
+            </div>
+            {isPolling && (
+              <RefreshCw className="h-3 w-3 animate-spin text-muted-foreground" />
+            )}
           </div>
 
           {isChatLocked ? (
-            <div className="mb-4 p-3 bg-muted/30 rounded-lg text-center">
-              <Shield className="h-5 w-5 text-muted-foreground mx-auto mb-1" />
+            <div className="flex-1 flex flex-col items-center justify-center p-3 bg-muted/10 rounded-lg text-center">
+              <Shield className="h-8 w-8 text-muted-foreground mb-2" />
               <p className="text-sm text-muted-foreground">
                 {matchInfo.status === "scheduled"
                   ? "Chat will open when match kicks off"
                   : "Chat closed - Match has finished"}
               </p>
+              <button onClick={() => setShowGate(true)} className="mt-4 text-primary text-sm font-bold">Try another match</button>
             </div>
           ) : messagesError ? (
-            <div className="mb-4 p-3 bg-red-500/20 border border-red-500/40 rounded-lg text-center">
-              <AlertCircle className="h-5 w-5 text-red-400 mx-auto mb-1" />
+            <div className="flex-1 flex flex-col items-center justify-center p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-center">
+              <AlertCircle className="h-8 w-8 text-red-400 mb-2" />
               <p className="text-sm text-red-400">
                 Chat temporarily unavailable.
               </p>
             </div>
           ) : messages.length === 0 ? (
-            <div className="text-center py-8">
-              <MessageCircle className="h-12 w-12 text-primary/30 mx-auto mb-2" />
+            <div className="flex-1 flex flex-col items-center justify-center py-8">
+              <MessageCircle className="h-16 w-16 text-primary/20 mb-2" />
               <p className="text-muted-foreground">
                 No messages yet. Be the first to comment!
               </p>
             </div>
           ) : (
-            <div className="h-[300px] overflow-y-auto mb-4 space-y-3 pr-2">
+            <div className="flex-1 overflow-y-auto mb-4 space-y-4 pr-2 custom-scrollbar">
               {groupedMessages.map((group, groupIndex) => (
-                <motion.div
-                  key={groupIndex}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: groupIndex * 0.05 }}
-                  className="space-y-2"
-                >
+                <div key={groupIndex} className="space-y-2">
                   {group.map((msg) => (
-                    <div key={msg.id} className="glass rounded-lg p-3">
+                    <motion.div 
+                      key={msg.id} 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="glass rounded-2xl p-3 max-w-[85%]"
+                    >
                       <div className="flex items-center gap-2 mb-1">
-                        <span className="font-bold text-primary text-sm">
+                        <span className="font-bold text-primary text-xs">
                           {msg.user_name}
                         </span>
-                        <span className="text-xs text-muted-foreground">
+                        <span className="text-[10px] text-muted-foreground">
                           {formatDistanceToNow(new Date(msg.created_at), {
                             addSuffix: true,
                           })}
                         </span>
                       </div>
-                      <p className="text-sm">{msg.message}</p>
-                    </div>
+                      <p className="text-sm leading-relaxed">{msg.message}</p>
+                    </motion.div>
                   ))}
-                </motion.div>
+                </div>
               ))}
               <div ref={messagesEndRef} />
             </div>
@@ -443,14 +447,14 @@ function CommunityContent() {
               type="text"
               value={newMessage}
               onChange={(e) => setNewMessage(e.target.value)}
-              placeholder={isChatLocked ? "Chat is locked" : "Type a message..."}
+              placeholder={isChatLocked ? "Chat is locked" : "Message community..."}
               disabled={isChatLocked || isSending}
-              className="flex-1 bg-white/10 rounded-lg px-3 py-2 text-sm outline-none focus:bg-white/20 disabled:opacity-50"
+              className="flex-1 bg-white/5 border border-white/10 rounded-xl px-4 py-2.5 text-sm outline-none focus:bg-white/10 focus:border-primary/50 transition-all disabled:opacity-50"
             />
             <button
               type="submit"
               disabled={!newMessage.trim() || isChatLocked || isSending}
-              className="p-2 text-primary disabled:opacity-50"
+              className="p-3 bg-primary text-white rounded-xl disabled:opacity-50 disabled:bg-white/10 transition-all shadow-lg shadow-primary/20 active:scale-95"
             >
               {isSending ? (
                 <Loader2 className="h-5 w-5 animate-spin" />

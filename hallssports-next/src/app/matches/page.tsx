@@ -20,6 +20,7 @@ type Match = {
   venue?: string;
   image_url?: string;
   featured?: boolean;
+  community_visible?: boolean;
 };
 
 export default function MatchesPage() {

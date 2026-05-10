@@ -13,6 +13,7 @@ export interface Match {
   match_date: string;
   featured: boolean;
   is_verified: boolean;
+  community_visible: boolean;
   image_url?: string;
   venue?: string;
 }
@@ -35,6 +36,23 @@ export interface MatchEvent {
   player_name: string;
   assist?: string;
   created_at: string;
+}
+
+// Player types
+export interface Player {
+  id: string;
+  name: string;
+  team: string;
+  position: string;
+  number: number;
+  photo?: string;
+  bio?: string;
+  goals?: number;
+  assists?: number;
+  yellow_cards?: number;
+  red_cards?: number;
+  is_verified: boolean;
+  updated_at?: string;
 }
 
 const getSupabaseSafe = () => supabase;
@@ -308,4 +326,40 @@ export async function insertChatMessage(message: {
 
   if (error) throw error;
   return data;
+}
+
+// Get player details by ID
+export async function getPlayerById(playerId: string): Promise<Player | null> {
+  const client = getSupabaseSafe();
+  if (!client) return null;
+
+  try {
+    const { data } = await client
+      .from('players')
+      .select('*')
+      .eq('id', playerId)
+      .single();
+
+    return data || null;
+  } catch {
+    return null;
+  }
+}
+
+// Get all verified players
+export async function getPlayers(): Promise<Player[]> {
+  const client = getSupabaseSafe();
+  if (!client) return [];
+
+  try {
+    const { data } = await client
+      .from('players')
+      .select('*')
+      .eq('is_verified', true)
+      .order('name', { ascending: true });
+
+    return data || [];
+  } catch {
+    return [];
+  }
 }

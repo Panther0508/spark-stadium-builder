@@ -18,7 +18,8 @@ interface UseMatchRealtimeResult {
 
 export function useMatchRealtime(
   initialMatch: Match | null,
-  initialEvents: MatchEvent[]
+  initialEvents: MatchEvent[],
+  onGoal?: (event: MatchEvent) => void
 ): UseMatchRealtimeResult {
   const [match, setMatch] = useState<Match | null>(initialMatch);
   const [events, setEvents] = useState<MatchEvent[]>(initialEvents);
@@ -68,8 +69,18 @@ export function useMatchRealtime(
         "postgres_changes",
         { event: "UPDATE", schema: "public", table: "matches", filter: `id=eq.${matchId}` },
         (payload: { new: Match }) => {
-          const newEvent = payload.new as unknown as MatchEvent;
+          setMatch(payload.new);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "INSERT", schema: "public", table: "match_events", filter: `match_id=eq.${matchId}` },
+        (payload: { new: MatchEvent }) => {
+          const newEvent = payload.new;
           setEvents((prev) => [newEvent, ...prev]);
+          if (newEvent.type === 'goal' && onGoal) {
+            onGoal(newEvent);
+          }
         }
       )
       .subscribe((status, err) => {

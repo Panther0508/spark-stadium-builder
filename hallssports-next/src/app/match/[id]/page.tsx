@@ -55,5 +55,32 @@ export default async function MatchDetailPage({ params }: { params: { id: string
     );
   }
 
-  return <MatchLiveClient initialMatch={match} initialEvents={events} />;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "SportsEvent",
+    "name": `${match.home_team} vs ${match.away_team}`,
+    "startDate": match.match_date,
+    "location": {
+      "@type": "Place",
+      "name": match.venue || "Tournament Grounds"
+    },
+    "homeTeam": {
+      "@type": "SportsTeam",
+      "name": match.home_team
+    },
+    "awayTeam": {
+      "@type": "SportsTeam",
+      "name": match.away_team
+    }
+  };
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+      />
+      <MatchLiveClient initialMatch={match} initialEvents={events} />
+    </>
+  );
 }

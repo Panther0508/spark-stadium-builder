@@ -174,6 +174,41 @@ export default function VerificationQueuePage() {
         </div>
 
         {/* Bulk Actions */}
+        {items.length > 0 && (
+          <div className="flex gap-2 mb-4">
+            <button 
+              onClick={async () => {
+                if (!confirm("Approve all pending items?")) return;
+                const allIds = new Set(items.map(i => i.id));
+                setSelected(allIds);
+                await handleBulkApprove();
+              }}
+              className="px-4 py-2 bg-primary/20 text-primary border border-primary/30 rounded-lg text-sm font-bold hover:bg-primary/30 transition-colors"
+            >
+              Approve All ({items.length})
+            </button>
+            <button 
+              onClick={async () => {
+                if (!confirm("Delete all pending items? This cannot be undone.")) return;
+                try {
+                  for (const item of items) {
+                    const [type, id] = item.id.split("-");
+                    const table = getTableName(type as ItemType);
+                    await adminDelete(table, { id });
+                  }
+                  setItems([]);
+                  toast.success("All items rejected and deleted");
+                } catch {
+                  toast.error("Bulk rejection failed");
+                }
+              }}
+              className="px-4 py-2 bg-red-500/10 text-red-400 border border-red-500/30 rounded-lg text-sm font-bold hover:bg-red-500/20 transition-colors"
+            >
+              Reject All
+            </button>
+          </div>
+        )}
+
         {selected.size > 0 && (
           <AdminCard highlighted>
             <div className="flex items-center justify-between">

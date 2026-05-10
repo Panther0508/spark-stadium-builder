@@ -140,6 +140,12 @@ export default function PlayersPage() {
           <h1 className="text-2xl font-bold">Manage Players</h1>
           <div className="flex gap-2">
             <button
+              onClick={handleExport}
+              className="px-4 py-2 glass rounded-lg flex items-center gap-2 text-sm"
+            >
+              Export CSV
+            </button>
+            <button
               onClick={() => fileInputRef.current?.click()}
               className="px-4 py-2 glass rounded-lg flex items-center gap-2"
             >

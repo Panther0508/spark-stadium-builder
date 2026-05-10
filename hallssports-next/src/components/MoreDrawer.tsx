@@ -72,7 +72,7 @@ export function MoreDrawer({ open, onClose }: { open: boolean; onClose: () => vo
               animate={{ y: 0 }}
               exit={{ y: "100%" }}
               transition={{ type: "spring", damping: 30, stiffness: 300 }}
-              className="w-full md:w-96 h-[70vh] md:h-auto glass-strong rounded-t-3xl md:rounded-3xl p-6 overflow-y-auto"
+              className="w-full md:w-96 max-h-[85vh] md:max-h-[90vh] glass-strong rounded-t-3xl md:rounded-3xl p-6 overflow-y-auto overscroll-contain"
               onClick={e => e.stopPropagation()}
             >
             <div className="flex items-center justify-between mb-6">
