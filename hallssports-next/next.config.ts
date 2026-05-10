@@ -4,7 +4,6 @@ import withBundleAnalyzer from "@next/bundle-analyzer";
 import { withSentryConfig } from "@sentry/nextjs";
 
 const nextConfig: NextConfig = {
-  turbopack: {},
   async headers() {
     return [
       {

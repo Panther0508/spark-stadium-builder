@@ -2,7 +2,7 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Fog } from "three";
-import { useMemo, useRef } from "react";
+import { useMemo, useRef, useState, useEffect, Suspense } from "react";
 import * as THREE from "three";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
@@ -178,6 +178,28 @@ function Scene() {
 export function FootballFieldScene() {
   const { theme } = useTheme();
   const isDark = theme === "dark";
+  const [webglError, setWebglError] = useState(false);
+
+  useEffect(() => {
+    if (webglError) return;
+    
+    const handleContextLost = (e: Event) => {
+      e.preventDefault();
+      setWebglError(true);
+    };
+    
+    document.addEventListener("webglcontextlost", handleContextLost);
+    
+    return () => {
+      document.removeEventListener("webglcontextlost", handleContextLost);
+    };
+  }, [webglError]);
+
+  if (webglError) {
+    return (
+      <div className="fixed inset-0 -z-10 bg-gradient-to-b from-background via-background/80 to-background/60" />
+    );
+  }
 
   return (
     <div className="fixed inset-0 -z-10">
@@ -185,13 +207,15 @@ export function FootballFieldScene() {
         shadows
         dpr={[1, 1.5]}
         camera={{ position: [0, 22, 32], fov: 50 }}
-        gl={{ antialias: true, alpha: false }}
+        gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true }}
         onCreated={({ scene }) => { 
           scene.fog = new Fog(isDark ? "#001a0d" : "#f0f0f0", 30, 70); 
           scene.background = new THREE.Color(isDark ? "#020806" : "#ffffff"); 
         }}
       >
-        <Scene />
+        <Suspense fallback={null}>
+          <Scene />
+        </Suspense>
       </Canvas>
       {/* dark overlay for legibility */}
       <div className={cn(

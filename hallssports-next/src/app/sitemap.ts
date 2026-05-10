@@ -39,8 +39,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   });
 
   // Dynamic routes - matches and players from Supabase
-  if (supabase) {
-    try {
+  try {
+    if (supabase) {
       // Fetch matches
       const { data: matches } = await supabase
         .from("matches")
@@ -74,9 +74,9 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
           });
         });
       }
-    } catch (error) {
-      console.error("Error fetching dynamic routes for sitemap:", error);
     }
+  } catch (error) {
+    console.error("Error fetching dynamic routes for sitemap:", error);
   }
 
   return sitemapEntries;

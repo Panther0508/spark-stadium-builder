@@ -30,6 +30,9 @@ export const metadata: Metadata = {
   description: "Real-time football scores, stats, and community for FUTO hostel competitions. Follow live matches, track players, and join the conversation – proudly Futoite.",
   keywords: ["FUTO football", "hostel competition", "live sports", "HallsSports", "Nigerian university sports", "inter-hostel tournament", "Owerri", "FUTOite"],
   authors: [{ name: "Nmesirionye Ngbaronye", url: "https://github.com/panther0508" }],
+  icons: {
+    icon: "/favicon.ico",
+  },
   openGraph: {
     type: "website",
     siteName: "HallsSports",
@@ -71,8 +74,9 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} h-full antialiased dark`}>
+    <html lang="en" className={`${spaceGrotesk.variable} h-full antialiased dark`} suppressHydrationWarning>
       <head>
+        <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.png" type="image/png" />
         <script
           type="application/ld+json"
