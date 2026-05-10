@@ -2,10 +2,13 @@
 
 import { Canvas, useFrame } from "@react-three/fiber";
 import { Fog } from "three";
-import { useMemo, useRef, useState, useEffect, Suspense } from "react";
+import { useMemo, useRef, useState, useEffect, Suspense, useCallback } from "react";
 import * as THREE from "three";
 import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
+
+// Default theme fallback for when ThemeProvider is not available
+const DEFAULT_THEME = "dark";
 
 function Pitch() {
   const { theme } = useTheme();
@@ -85,7 +88,7 @@ function Player({ color, path, speed, offset }: { color: string; path: (t: numbe
   const ref = useRef<THREE.Group>(null);
   useFrame(({ clock }) => {
     if (!ref.current) return;
-    const t = (clock.elapsedTime * speed + offset) % 1;
+    const t = (clock.getElapsedTime() * speed + offset) % 1;
     const [x, z] = path(t);
     const next = path((t + 0.01) % 1);
     ref.current.position.x = x;
@@ -113,7 +116,7 @@ function Ball() {
   const ref = useRef<THREE.Mesh>(null);
   useFrame(({ clock }) => {
     if (!ref.current) return;
-    const t = clock.elapsedTime;
+    const t = clock.getElapsedTime();
     ref.current.position.x = Math.sin(t * 0.6) * 18;
     ref.current.position.z = Math.cos(t * 0.4) * 10;
     ref.current.position.y = 0.4 + Math.abs(Math.sin(t * 2)) * 0.6;
@@ -130,7 +133,7 @@ function Ball() {
 
 function CameraRig() {
   useFrame(({ camera, clock }) => {
-    const t = clock.elapsedTime * 0.08;
+    const t = clock.getElapsedTime() * 0.08;
     camera.position.x = Math.sin(t) * 32;
     camera.position.z = Math.cos(t) * 32;
     camera.position.y = 22;

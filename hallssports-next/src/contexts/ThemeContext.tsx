@@ -16,6 +16,8 @@ interface ThemeContextValue {
 
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
+const DEFAULT_THEME = "dark";
+
 function getStoredTheme(): Theme {
   if (typeof window === "undefined") return "dark";
   return (localStorage.getItem("hallssports_theme") as Theme) || "dark";
@@ -73,7 +75,17 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
 export function useTheme() {
   const ctx = useContext(ThemeContext);
-  if (!ctx) throw new Error("useTheme must be used within ThemeProvider");
+  if (!ctx) {
+    // Return a default context for graceful degradation (e.g., during SSR or dynamic imports)
+    return {
+      theme: DEFAULT_THEME,
+      setTheme: () => {},
+      fontSize: "medium",
+      setFontSize: () => {},
+      reduceMotion: false,
+      setReduceMotion: () => {},
+    };
+  }
   return ctx;
 }
 
