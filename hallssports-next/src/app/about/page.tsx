@@ -9,46 +9,48 @@ import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { sanitizeHtml } from "@/lib/sanitize";
+import { adminSelect } from "@/app/admin/actions";
+
+type Person = {
+  name: string;
+  role: string;
+  photo?: string;
+  bio?: string;
+};
 
 const MOCK_ABOUT_SETTINGS = {
   title: "HallsSports Tournament",
-  description: "The HallsSports Tournament is a premier football competition bringing together the best local talent. Our mission is to foster community engagement through the beautiful game while providing a platform for players to showcase their skills.",
-  mission: "To create an inclusive, competitive environment that celebrates football excellence and builds lasting community connections through sport.",
-  vision: "To become the leading amateur football tournament in the region, known for its fair play, competitive spirit, and community impact.",
-  honouredGuests: [
-    { id: 1, name: "John Smith", title: "Former National Team Captain", bio: "John Smith captained the national team for 8 years, winning 67 caps. He now runs a youth academy.", photo: "/images/guests/guest1.jpg" },
-    { id: 2, name: "Maria Garcia", title: "Olympic Gold Medalist", bio: "Maria won gold in the 2016 Olympics and bronze in 2020. She is an inspiration to young female athletes.", photo: "/images/guests/guest2.jpg" },
-    { id: 3, name: "David Thompson", title: "FIFA Ambassador", bio: "David has been involved in football development for over 20 years, working with FIFA on grassroots programs.", photo: "/images/guests/guest3.jpg" },
-    { id: 4, name: "Sarah Johnson", title: "Sports Journalist", bio: "Sarah has covered football for 15 years, bringing insightful analysis and storytelling to the sport.", photo: "/images/guests/guest4.jpg" },
-    { id: 5, name: "Coach Williams", title: "Development Director", bio: "Williams has trained over 500 coaches and developed youth programs across 5 countries.", photo: "/images/guests/guest5.jpg" },
-  ],
-  contributors: [
-    { id: 1, name: "Alex Morgan", role: "Tournament Director", bio: "Alex has 10 years of tournament experience, managing events across three continents.", photo: "/images/contributors/cont1.jpg" },
-    { id: 2, name: "Jamie Lee", role: "Technical Director", bio: "Former pro player turned coach, Jamie ensures fair play and high standards throughout the tournament.", photo: "/images/contributors/cont2.jpg" },
-    { id: 3, name: "Chris Evans", role: "Marketing Lead", bio: "Chris brings 8 years of sports marketing experience, growing our audience by 300%.", photo: "/images/contributors/cont3.jpg" },
-    { id: 4, name: "Taylor Kim", role: "Operations Manager", bio: "Taylor coordinates logistics, from pitch preparation to volunteer coordination.", photo: "/images/contributors/cont4.jpg" },
-    { id: 5, name: "Jordan Patel", role: "Social Media", bio: "Jordan creates engaging content and manages our community outreach.", photo: "/images/contributors/cont5.jpg" },
-    { id: 6, name: "Riley Brown", role: "Safety Officer", bio: "Riley ensures all matches meet safety standards and emergency protocols are in place.", photo: "/images/contributors/cont6.jpg" },
-    { id: 7, name: "Avery Davis", role: "Finance Lead", bio: "Avery handles all financial operations and sponsorship management.", photo: "/images/contributors/cont7.jpg" },
-    { id: 8, name: "Quinn Miller", role: "Volunteer Coordinator", bio: "Quinn organizes and trains our 100+ volunteers who make the tournament possible.", photo: "/images/contributors/cont8.jpg" },
-  ],
+  description: "The HallsSports Tournament is a premier football competition bringing together the best local talent.",
+  mission: "To create an inclusive, competitive environment that celebrates football excellence.",
+  vision: "To become the leading amateur football tournament in the region.",
 };
 
-type Guest = typeof MOCK_ABOUT_SETTINGS.honouredGuests[0];
-type Contributor = typeof MOCK_ABOUT_SETTINGS.contributors[0];
-
 export default function AboutPage() {
-  const [settings, setSettings] = useState<typeof MOCK_ABOUT_SETTINGS | null>(null);
+  const [settings, setSettings] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedGuest, setSelectedGuest] = useState<Guest | null>(null);
-  const [selectedContributor, setSelectedContributor] = useState<Contributor | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<Person | null>(null);
 
   useEffect(() => {
     const fetchSettings = async () => {
       try {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        setSettings(MOCK_ABOUT_SETTINGS);
+        const data = await adminSelect('settings') as Array<{ key: string; value: string }>;
+        const settingsObj: any = { ...MOCK_ABOUT_SETTINGS };
+        
+        if (data) {
+          data.forEach(s => {
+            if (s.key === 'organizers' || s.key === 'contributors') {
+              try {
+                settingsObj[s.key] = JSON.parse(s.value);
+              } catch {
+                settingsObj[s.key] = [];
+              }
+            } else {
+              settingsObj[s.key] = s.value;
+            }
+          });
+        }
+        setSettings(settingsObj);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load settings");
       } finally {
@@ -88,7 +90,6 @@ export default function AboutPage() {
         animate={{ opacity: 1 }}
         className="space-y-8"
       >
-        {/* About the Tournament */}
         <GlassCard className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <Trophy className="h-6 w-6 text-primary" />
@@ -103,46 +104,46 @@ export default function AboutPage() {
           </div>
         </GlassCard>
 
-        {/* Honoured Guests */}
         <GlassCard className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <Heart className="h-6 w-6 text-primary" />
-            <h2 className="text-2xl font-bold">Honoured Guests</h2>
+            <h2 className="text-2xl font-bold">Tournament Organizers</h2>
           </div>
+          <p className="text-muted-foreground mb-4">The official team running the tournament.</p>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {settings?.honouredGuests.map(guest => (
+            {(settings?.organizers || []).map((person: Person, index: number) => (
               <button
-                key={guest.id}
-                onClick={() => setSelectedGuest(guest)}
-                className="glass p-4 rounded-lg text-center hover:bg-white/20 transition-colors"
+                key={index}
+                onClick={() => setSelectedPerson({ ...person, bio: person.bio || "" })}
+                className="glass p-4 rounded-lg text-center hover:bg-white/20 transition-colors min-h-[44px]"
               >
                 <div className="relative w-20 h-20 rounded-full overflow-hidden mx-auto mb-3">
                   <Image
-                    src={guest.photo || "/images/guests/default.jpg"}
-                    alt={guest.name}
+                    src={person.photo || "/images/guests/default.jpg"}
+                    alt={person.name}
                     fill
                     className="object-cover"
                   />
                 </div>
-                <h3 className="font-bold">{guest.name}</h3>
-                <p className="text-sm text-muted-foreground">{guest.title}</p>
+                <h3 className="font-bold">{person.name}</h3>
+                <p className="text-sm text-primary">{person.role}</p>
               </button>
             ))}
           </div>
         </GlassCard>
 
-        {/* Contributors */}
         <GlassCard className="p-6">
           <div className="flex items-center gap-2 mb-4">
             <Users className="h-6 w-6 text-primary" />
             <h2 className="text-2xl font-bold">Contributors</h2>
           </div>
+          <p className="text-muted-foreground mb-4">People who helped build and run HallsSports.</p>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {settings?.contributors.map(contributor => (
+            {(settings?.contributors || []).map((contributor: Person, index: number) => (
               <button
-                key={contributor.id}
-                onClick={() => setSelectedContributor(contributor)}
-                className="glass p-3 rounded-lg text-center hover:bg-white/20 transition-colors"
+                key={index}
+                onClick={() => setSelectedPerson({ ...contributor, bio: contributor.bio || "" })}
+                className="glass p-3 rounded-lg text-center hover:bg-white/20 transition-colors min-h-[44px]"
               >
                 <div className="relative w-16 h-16 rounded-full overflow-hidden mx-auto mb-2">
                   <Image
@@ -153,13 +154,12 @@ export default function AboutPage() {
                   />
                 </div>
                 <h4 className="font-semibold text-sm">{contributor.name}</h4>
-                <p className="text-xs text-muted-foreground">{contributor.role}</p>
+                <p className="text-xs text-primary">{contributor.role}</p>
               </button>
             ))}
           </div>
         </GlassCard>
 
-        {/* Powered by Pantero */}
         <GlassCard className="p-8 text-center">
           <Trophy className="h-12 w-12 text-primary mx-auto mb-4" />
           <h2 className="text-2xl font-bold mb-2">Powered by Pantero</h2>
@@ -176,7 +176,6 @@ export default function AboutPage() {
           </a>
         </GlassCard>
 
-        {/* Contact Developer */}
         <GlassCard className="p-6 border-2 border-primary/30">
           <p className="text-center mb-4">Looking for a similar service? We can build a custom live-stats platform for your event.</p>
           <a
@@ -190,58 +189,31 @@ export default function AboutPage() {
           <p className="text-center text-xs text-muted-foreground mt-3">Built with ❤️ by the HallsSports team</p>
         </GlassCard>
 
-        {/* Guest Bio Modal */}
-        {selectedGuest && (
+        {selectedPerson && (
           <GlassModal
             open={true}
-            onClose={() => setSelectedGuest(null)}
-            title={selectedGuest.name}
+            onClose={() => setSelectedPerson(null)}
+            title={selectedPerson.name}
             maxWidth="md"
           >
             <div className="space-y-4">
               <div className="flex items-center gap-4 mb-4">
                 <div className="relative w-16 h-16 rounded-full overflow-hidden">
                   <Image
-                    src={selectedGuest.photo || "/images/guests/default.jpg"}
-                    alt={selectedGuest.name}
+                    src={selectedPerson.photo || "/images/contributors/default.jpg"}
+                    alt={selectedPerson.name}
                     fill
                     className="object-cover"
                   />
                 </div>
                 <div>
-                  <h3 className="font-bold text-xl">{selectedGuest.name}</h3>
-                  <p className="text-primary">{selectedGuest.title}</p>
+                  <h3 className="font-bold text-xl">{selectedPerson.name}</h3>
+                  <p className="text-primary">{selectedPerson.role}</p>
                 </div>
               </div>
-              <p className="text-muted-foreground">{sanitizeHtml(selectedGuest.bio)}</p>
-            </div>
-          </GlassModal>
-        )}
-
-        {/* Contributor Bio Modal */}
-        {selectedContributor && (
-          <GlassModal
-            open={true}
-            onClose={() => setSelectedContributor(null)}
-            title={selectedContributor.name}
-            maxWidth="md"
-          >
-            <div className="space-y-4">
-              <div className="flex items-center gap-4 mb-4">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden">
-                  <Image
-                    src={selectedContributor.photo || "/images/contributors/default.jpg"}
-                    alt={selectedContributor.name}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div>
-                  <h3 className="font-bold text-xl">{selectedContributor.name}</h3>
-                  <p className="text-primary">{selectedContributor.role}</p>
-                </div>
-              </div>
-              <p className="text-muted-foreground">{sanitizeHtml(selectedContributor.bio)}</p>
+              {selectedPerson.bio && (
+                <p className="text-muted-foreground">{sanitizeHtml(selectedPerson.bio)}</p>
+              )}
             </div>
           </GlassModal>
         )}

@@ -38,6 +38,9 @@ const roleNavItems: Record<Role, NavItem[]> = {
   media: [
     { label: "Dashboard", href: "/admin/media", icon: <Home className="w-5 h-5" /> },
     { label: "Manage Highlights", href: "/admin/media/highlights", icon: <Video className="w-5 h-5" /> },
+    { label: "Match Covers", href: "/admin/media/matches", icon: <Calendar className="w-5 h-5" /> },
+    { label: "Player Photos", href: "/admin/media/players", icon: <Users className="w-5 h-5" /> },
+    { label: "Team Logos", href: "/admin/media/teams", icon: <Shield className="w-5 h-5" /> },
     { label: "Settings & About", href: "/admin/media/settings", icon: <Settings className="w-5 h-5" /> },
   ],
   verifier: [
@@ -57,7 +60,6 @@ export function AdminLayout({ children, role }: Props) {
   const pathname = usePathname();
   const router = useRouter();
 
-  // Compute page title from pathname
   const segments = pathname.split("/").filter(Boolean);
   const lastSegment = segments[segments.length - 1];
   const formattedTitle = lastSegment
@@ -77,7 +79,6 @@ export function AdminLayout({ children, role }: Props) {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Mobile sidebar overlay */}
       <AnimatePresence>
         {sidebarOpen && (
           <>
@@ -101,19 +102,16 @@ export function AdminLayout({ children, role }: Props) {
         )}
       </AnimatePresence>
 
-      {/* Desktop sidebar */}
       <aside className="hidden lg:flex fixed left-0 top-0 bottom-0 w-64 glass bg-[#0A0A0A]/95 z-40 flex-col">
         <SidebarContent navItems={navItems} pathname={pathname} onLogout={handleLogout} />
       </aside>
 
-      {/* Main content */}
-      <div className="lg:pl-64">
-        {/* Top bar */}
-        <header className="glass h-16 border-b border-white/10 flex items-center justify-between px-4 lg:px-6">
+      <div className="lg:pl-64 h-screen flex flex-col">
+        <header className="glass h-16 border-b border-white/10 flex items-center justify-between px-4 lg:px-6 flex-shrink-0">
           <div className="flex items-center gap-3">
             <button
               onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors"
+              className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
               aria-label="Open sidebar"
             >
               <Menu className="w-5 h-5" />
@@ -122,15 +120,16 @@ export function AdminLayout({ children, role }: Props) {
           </div>
           <button
             onClick={() => router.push("/home")}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors text-sm"
+            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors text-sm min-h-[44px]"
           >
             <Eye className="w-4 h-4" />
             Back to Public View
           </button>
         </header>
 
-        {/* Page content */}
-        <main className="p-4 lg:p-6">{children}</main>
+        <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
+          {children}
+        </main>
       </div>
     </div>
   );
@@ -147,7 +146,6 @@ function SidebarContent({
 }) {
   return (
     <>
-      {/* Header */}
       <div className="p-4 border-b border-white/10">
         <div className="flex items-center gap-3">
           <div className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center">
@@ -157,7 +155,6 @@ function SidebarContent({
         </div>
       </div>
 
-      {/* Navigation */}
       <nav className="flex-1 p-3 overflow-y-auto custom-scrollbar">
         {navItems.map((item) => {
           const isActive = pathname === item.href;
@@ -166,7 +163,7 @@ function SidebarContent({
               key={item.href}
               href={item.href}
               className={cn(
-                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mb-1",
+                "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-colors mb-1 min-h-[44px]",
                 isActive
                   ? "bg-primary text-primary-foreground"
                   : "text-white/80 hover:bg-white/10 hover:text-white",
@@ -179,11 +176,10 @@ function SidebarContent({
         })}
       </nav>
 
-      {/* Logout */}
       <div className="p-3 border-t border-white/10">
         <button
           onClick={onLogout}
-          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors w-full"
+          className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-red-400 hover:bg-red-500/10 transition-colors w-full min-h-[44px]"
         >
           <LogOut className="w-5 h-5" />
           <span className="font-medium">Logout</span>
