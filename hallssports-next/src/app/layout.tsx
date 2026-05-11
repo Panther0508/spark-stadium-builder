@@ -1,5 +1,4 @@
 import type { Metadata } from "next";
-import { HallsSymbol } from "@/components/HallsSymbol";
 import { BottomNavWrapper } from "@/components/BottomNavWrapper";
 import { ClientLayout } from "@/components/ClientLayout";
 import { ToastProvider } from "@/components/ToastProvider";
@@ -88,9 +87,6 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col custom-scrollbar">
         <SkipToContent />
         <SceneController />
-        <div className="fixed top-4 left-4 z-50 pointer-events-none">
-          <HallsSymbol />
-        </div>
         <div className="fixed top-4 right-4 z-50">
           <AdminNavButton />
         </div>

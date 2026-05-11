@@ -4,7 +4,6 @@ export { GlassModal } from "./GlassModal";
 export { PageShell } from "./PageShell";
 export { StatusBadge, TeamLogo } from "./StatusBadge";
 export { MatchStatusBadge } from "./MatchStatusBadge";
-export { HallsSymbol } from "./HallsSymbol";
 export { BottomNav } from "./BottomNav";
 export { MoreDrawer } from "./MoreDrawer";
 export { CookieConsent } from "./CookieConsent";
