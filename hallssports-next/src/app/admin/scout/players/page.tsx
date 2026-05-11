@@ -5,39 +5,43 @@ import { AdminTable, AdminFormField, AdminModal } from "@/components/admin";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useState, useEffect, useRef } from "react";
-import { Plus, Upload } from "lucide-react";
+import { Plus, Upload, User } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
 import Papa from "papaparse";
-import { adminInsert, adminSelect } from "@/app/admin/actions";
+import { adminInsert, adminSelect, adminUpdate } from "@/app/admin/actions";
 
 type Player = {
   id: string;
   name: string;
-  team: string;
+  team_id: string;
   position: string;
   number: number;
-  photo?: string;
+  photo_url?: string;
   is_verified?: boolean;
+  teams?: { name: string };
 };
 
-type CsvRow = { name?: string; team?: string; position?: string; number?: string };
+type Team = { id: string; name: string };
+
+type CsvRow = { name?: string; team_id?: string; position?: string; number?: string };
 
 export default function PlayersPage() {
   const { loading } = useAdminAuth("scout");
   const { addToast } = useToast();
   
   const [players, setPlayers] = useState<Player[]>([]);
-  const [teams, setTeams] = useState<string[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingPlayer, setEditingPlayer] = useState<Player | null>(null);
   const [importModal, setImportModal] = useState(false);
   const [csvPreview, setCsvPreview] = useState<CsvRow[]>([]);
   const [formData, setFormData] = useState({
     name: "",
-    team: "",
+    team_id: "",
     position: "",
     number: "",
-    photo: "",
+    photo_url: "",
   });
 
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -46,11 +50,14 @@ export default function PlayersPage() {
     const load = async () => {
       try {
         const [playersData, teamsData] = await Promise.all([
-          adminSelect('players', {}, { order: { field: 'name' } }) as Promise<Player[]>,
-          adminSelect('teams') as Promise<Array<{ name: string }>>,
+          adminSelect('players', {}, { 
+            select: '*, teams:team_id(name)',
+            order: { field: 'name' } 
+          }) as Promise<Player[]>,
+          adminSelect('teams') as Promise<Team[]>,
         ]);
         setPlayers(playersData);
-        setTeams((teamsData || []).map(t => t.name));
+        setTeams(teamsData || []);
        } catch {
          addToast({ type: "error", title: "Failed to load data" });
        } finally {
@@ -61,29 +68,52 @@ export default function PlayersPage() {
   }, [addToast]);
 
   const columns = [
-    { header: "Photo", accessor: () => "—" },
+    { 
+      header: "Photo", 
+      accessor: (row: Player) => (
+        <div className="w-8 h-8 rounded-full overflow-hidden bg-black/20 flex items-center justify-center">
+          {row.photo_url ? (
+            <img src={row.photo_url} alt="" className="w-full h-full object-cover" />
+          ) : (
+            <User className="w-4 h-4 text-muted-foreground" />
+          )}
+        </div>
+      )
+    },
     { header: "Name", accessor: "name" },
-    { header: "Team", accessor: "team" },
+    { header: "Team", accessor: (row: Player) => row.teams?.name || "Unknown" },
     { header: "Position", accessor: "position" },
     { header: "Number", accessor: "number" },
   ];
 
   const handleSave = async () => {
     try {
-      await adminInsert('players', {
+      const data = {
         name: formData.name,
-        team: formData.team,
+        team_id: formData.team_id,
         position: formData.position,
         number: parseInt(formData.number),
         is_verified: false,
+      };
+
+      if (editingPlayer) {
+        await adminUpdate('players', { id: editingPlayer.id }, data);
+        addToast({ type: "success", title: "Player updated" });
+      } else {
+        await adminInsert('players', data);
+        addToast({ type: "success", title: "Player added" });
+      }
+      
+      setModalOpen(false);
+      setEditingPlayer(null);
+      // Refresh
+      const updated = await adminSelect('players', {}, { 
+        select: '*, teams:team_id(name)',
+        order: { field: 'name' } 
       });
-      addToast({ type: "success", title: "Player added" });
-       setModalOpen(false);
-       // Refresh
-       const data = await adminSelect('players', {}, { order: { field: 'name' } });
-       setPlayers(data as Player[]);
+      setPlayers(updated as Player[]);
      } catch (err) {
-       const message = err instanceof Error ? err.message : "Failed to add player";
+       const message = err instanceof Error ? err.message : "Failed to save player";
        addToast({ type: "error", title: message });
      }
   };
@@ -91,7 +121,8 @@ export default function PlayersPage() {
   const handleExport = () => {
     const csv = Papa.unparse(players.map(p => ({
       name: p.name,
-      team: p.team,
+      team_id: p.team_id,
+      team_name: p.teams?.name,
       position: p.position,
       number: p.number,
       verified: p.is_verified
@@ -114,7 +145,7 @@ export default function PlayersPage() {
         csvPreview.map(p =>
           adminInsert('players', {
             name: p.name || "",
-            team: p.team || "",
+            team_id: p.team_id || "",
             position: p.position || "",
             number: parseInt(p.number || "0"),
             is_verified: false,
@@ -124,7 +155,10 @@ export default function PlayersPage() {
       addToast({ type: "success", title: "Players imported" });
        setImportModal(false);
        setCsvPreview([]);
-       const data = await adminSelect('players', {}, { order: { field: 'name' } });
+       const data = await adminSelect('players', {}, { 
+         select: '*, teams:team_id(name)',
+         order: { field: 'name' } 
+       });
        setPlayers(data as Player[]);
      } catch {
        addToast({ type: "error", title: "Import failed" });
@@ -179,7 +213,11 @@ export default function PlayersPage() {
               className="hidden"
             />
             <button
-              onClick={() => setModalOpen(true)}
+              onClick={() => {
+                setEditingPlayer(null);
+                setFormData({ name: "", team_id: "", position: "", number: "", photo_url: "" });
+                setModalOpen(true);
+              }}
               className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"
             >
               <Plus className="w-4 h-4" />
@@ -193,7 +231,7 @@ export default function PlayersPage() {
         <AdminModal
           isOpen={modalOpen}
           onClose={() => setModalOpen(false)}
-          title="Add Player"
+          title={editingPlayer ? "Edit Player" : "Add Player"}
         >
           <div className="space-y-4">
             <AdminFormField label="Name">
@@ -206,12 +244,12 @@ export default function PlayersPage() {
             
             <AdminFormField label="Team">
               <select
-                value={formData.team}
-                onChange={e => setFormData({ ...formData, team: e.target.value })}
+                value={formData.team_id}
+                onChange={e => setFormData({ ...formData, team_id: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
               >
                 <option value="">Select team</option>
-                {teams.map(t => <option key={t} value={t}>{t}</option>)}
+                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </AdminFormField>
             
@@ -236,7 +274,7 @@ export default function PlayersPage() {
               onClick={handleSave}
               className="w-full py-2 bg-primary text-primary-foreground rounded-lg"
             >
-              Save Player
+              {editingPlayer ? "Update Player" : "Save Player"}
             </button>
           </div>
         </AdminModal>
@@ -248,7 +286,7 @@ export default function PlayersPage() {
         >
           <div className="space-y-4">
             <p className="text-sm text-muted-foreground">
-              Preview of first {csvPreview.length} rows. Confirm import?
+              Preview of first {csvPreview.length} rows. Confirm import? Make sure `team_id` matches the UUID in the teams table.
             </p>
             <pre className="p-3 rounded bg-black/20 text-xs overflow-auto">
               {JSON.stringify(csvPreview, null, 2)}

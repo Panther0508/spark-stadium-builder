@@ -2,7 +2,6 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { AdminCard } from "@/components/admin/AdminCard";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useState, useEffect } from "react";
@@ -10,11 +9,14 @@ import { useToast } from "@/components/ToastProvider";
 import { adminSelect, adminUpdate } from "@/app/admin/actions";
 import { FullScreenOverlay } from "@/components/FullScreenOverlay";
 import { Upload, ImageIcon } from "lucide-react";
+import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
 
 type Match = {
   id: string;
-  home_team: string;
-  away_team: string;
+  home_team_id?: string;
+  away_team_id?: string;
+  home_team?: { name: string } | string | null;
+  away_team?: { name: string } | string | null;
   match_date: string;
   image_url?: string;
 };
@@ -22,7 +24,7 @@ type Match = {
 export default function MatchCoversPage() {
   const { loading } = useAdminAuth("media");
   const { addToast } = useToast();
-  
+
   const [matches, setMatches] = useState<Match[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [uploadingId, setUploadingId] = useState<string | null>(null);
@@ -30,10 +32,18 @@ export default function MatchCoversPage() {
   const [selectedMatch, setSelectedMatch] = useState<Match | null>(null);
   const [uploadUrl, setUploadUrl] = useState("");
 
+  const getTeamName = (team: Match["home_team"] | Match["away_team"]) => {
+    if (!team) return "Unknown";
+    return typeof team === "object" && "name" in team ? team.name : String(team);
+  };
+
   useEffect(() => {
     const load = async () => {
       try {
-        const data = await adminSelect('matches', {}, { order: { field: 'match_date', ascending: false } }) as Match[];
+        const data = await adminSelect('matches', {}, {
+          select: '*, home_team:home_team_id(name), away_team:away_team_id(name)',
+          order: { field: 'match_date', ascending: false }
+        }) as Match[];
         setMatches(data);
       } catch {
         addToast({ type: "error", title: "Failed to load matches" });
@@ -84,7 +94,7 @@ export default function MatchCoversPage() {
             <div key={match.id} className="glass rounded-xl p-4 border border-white/10">
               <div className="flex items-center justify-between mb-3">
                 <div className="font-medium text-sm">
-                  {match.home_team} vs {match.away_team}
+                  {getTeamName(match.home_team)} vs {getTeamName(match.away_team)}
                 </div>
                 <div className="text-xs text-muted-foreground">
                   {new Date(match.match_date).toLocaleDateString()}
@@ -123,15 +133,12 @@ export default function MatchCoversPage() {
           onClose={() => setShowUploadModal(false)}
         >
           <div className="space-y-4">
-            <h2 className="text-xl font-bold">{selectedMatch?.home_team} vs {selectedMatch?.away_team}</h2>
+            <h2 className="text-xl font-bold">{getTeamName(selectedMatch?.home_team)} vs {getTeamName(selectedMatch?.away_team)}</h2>
             <div>
-              <label className="block text-sm font-medium mb-1.5">Image URL</label>
-              <input
-                type="url"
-                value={uploadUrl}
-                onChange={e => setUploadUrl(e.target.value)}
-                placeholder="https://cloudinary.com/..."
-                className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20 focus:border-primary focus:outline-none"
+              <label className="block text-sm font-medium mb-1.5">Cover Image</label>
+              <CloudinaryUpload 
+                value={uploadUrl} 
+                onSuccess={(url) => setUploadUrl(url)} 
               />
             </div>
             <div className="flex gap-3 pt-2">

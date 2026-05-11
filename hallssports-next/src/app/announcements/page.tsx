@@ -10,60 +10,26 @@ import { BackButton } from "@/components/BackButton";
 import { Bell, Calendar, User } from "lucide-react";
 import { sanitizeHtml } from "@/lib/sanitize";
 
-const MOCK_ANNOUNCEMENTS = [
-  {
-    id: "a1",
-    title: "Tournament Kickoff Ceremony",
-    date: "2025-01-10T10:00:00Z",
-    excerpt: "Join us for the opening ceremony as we kick off the HallsSports tournament...",
-    content: "The wait is over! HallsSports tournament officially begins this weekend with 24 teams competing across 6 venues. The opening ceremony at Halls Stadium will feature special guests, player introductions, and the unveiling of the championship trophy.",
-    author: "Tournament Committee",
-    image: "/images/announcements/kickoff.jpg",
-    category: "News",
-  },
-  {
-    id: "a2",
-    title: "New Rules for Season 2025",
-    date: "2025-01-08T14:30:00Z",
-    excerpt: "Updated regulations including VAR implementation and substitution rules...",
-    content: "We've introduced several new regulations for the 2025 season. VAR will be implemented for all knockout stage matches. Teams can now make 5 substitutions per match, with an additional substitution allowed during extra time.",
-    author: "Rules Committee",
-    image: "/images/announcements/rules.jpg",
-    category: "Updates",
-  },
-  {
-    id: "a3",
-    title: "Youth Coaching Clinic Registration",
-    date: "2025-01-05T09:00:00Z",
-    excerpt: "Register your kids for the summer coaching program...",
-    content: "HallsSports is proud to announce our annual Youth Coaching Clinic, running every Saturday from January 20th to March 30th. Sessions will be led by former professional players and certified coaches. Limited spots available!",
-    author: "Community Team",
-    image: "/images/announcements/youth.jpg",
-    category: "Community",
-  },
-  {
-    id: "a4",
-    title: "Top Scorer Award Announced",
-    date: "2025-01-03T16:00:00Z",
-    excerpt: "James Wilson wins the December Player of the Month...",
-    content: "Congratulations to James Wilson of Rangers FC, who has been awarded the December Player of the Month. His 5 goals and 3 assists in December helped his team climb to second place in the standings.",
-    author: "Awards Panel",
-    image: "/images/announcements/award.jpg",
-    category: "Awards",
-  },
-  {
-    id: "a5",
-    title: "Weather Advisory for Weekend Matches",
-    date: "2025-01-02T08:00:00Z",
-    excerpt: "Potential delays due to adverse weather conditions...",
-    content: "Please note that weekend matches may be subject to delays due to expected heavy rain. We recommend checking the app before traveling to venues. Updates will be posted on our social media channels.",
-    author: "Operations Team",
-    image: "/images/announcements/weather.jpg",
-    category: "Alerts",
-  },
-];
+type RawAnnouncement = {
+  id: string;
+  title: string;
+  body: string;
+  image_url?: string;
+  category?: string;
+  author?: string;
+  created_at: string;
+};
 
-type Announcement = typeof MOCK_ANNOUNCEMENTS[0];
+type Announcement = {
+  id: string;
+  title: string;
+  date: string;
+  excerpt: string;
+  content: string;
+  author: string;
+  image: string;
+  category: string;
+};
 
 export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
@@ -75,8 +41,21 @@ export default function AnnouncementsPage() {
   useEffect(() => {
     const fetchAnnouncements = async () => {
       try {
-        await new Promise(resolve => setTimeout(resolve, 600));
-        setAnnouncements(MOCK_ANNOUNCEMENTS);
+        const res = await fetch("/api/announcements");
+        if (!res.ok) throw new Error("Failed to load announcements");
+        const data: RawAnnouncement[] = await res.json();
+        // Transform to UI format
+        const transformed = data.map(a => ({
+          id: a.id,
+          title: a.title,
+          date: a.created_at,
+          excerpt: a.body.substring(0, 120) + (a.body.length > 120 ? '...' : ''),
+          content: a.body,
+          author: a.author || "Tournament Committee",
+          image: a.image_url || "/images/announcements/default.jpg",
+          category: a.category || "News",
+        }));
+        setAnnouncements(transformed);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load announcements");
       } finally {

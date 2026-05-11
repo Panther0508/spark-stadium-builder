@@ -73,10 +73,11 @@ export default function RootLayout({
   };
 
   return (
-    <html lang="en" className={`${spaceGrotesk.variable} h-full antialiased dark`} suppressHydrationWarning>
+    <html lang="en" className={`${spaceGrotesk.variable} h-full antialiased`} suppressHydrationWarning>
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.png" type="image/png" />
+        <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript" defer></script>
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}

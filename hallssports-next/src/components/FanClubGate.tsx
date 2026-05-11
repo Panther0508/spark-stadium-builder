@@ -111,8 +111,8 @@ export function FanClubGate({ onSelect }: FanClubGateProps) {
                     
                     <div className="flex items-center gap-3">
                       <div className="flex -space-x-2">
-                        <TeamLogo name={match.home_team.substring(0, 3)} color="#00A859" size="sm" />
-                        <TeamLogo name={match.away_team.substring(0, 3)} color="#00A859" size="sm" />
+                        <TeamLogo name={(match.home_team || "UNK").substring(0, 3)} color="#00A859" size="sm" />
+                        <TeamLogo name={(match.away_team || "UNK").substring(0, 3)} color="#00A859" size="sm" />
                       </div>
                       <div className="flex-1 truncate">
                         <p className="text-sm font-bold truncate">

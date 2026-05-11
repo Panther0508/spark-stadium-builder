@@ -9,6 +9,7 @@ import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
 import { adminSelect, adminInsert } from "@/app/admin/actions";
+import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
 
 type Announcement = {
   id: string;
@@ -113,6 +114,13 @@ export default function AnnouncementsPage() {
                 value={formData.body}
                 onChange={e => setFormData({ ...formData, body: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20 min-h-32"
+              />
+            </AdminFormField>
+
+            <AdminFormField label="Banner Image">
+              <CloudinaryUpload
+                value={formData.image_url}
+                onSuccess={(url) => setFormData({ ...formData, image_url: url })}
               />
             </AdminFormField>
             

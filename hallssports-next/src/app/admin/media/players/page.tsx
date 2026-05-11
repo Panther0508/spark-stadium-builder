@@ -2,14 +2,14 @@
 /* eslint-disable @next/next/no-img-element */
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { AdminCard } from "@/components/admin/AdminCard";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ToastProvider";
 import { adminSelect, adminUpdate } from "@/app/admin/actions";
 import { FullScreenOverlay } from "@/components/FullScreenOverlay";
-import { Upload, User, Search, Filter, Image as ImageIcon } from "lucide-react";
+import { Upload, User, Search, Image as ImageIcon } from "lucide-react";
+import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
 
 type Player = {
   id: string;
@@ -34,13 +34,15 @@ export default function PlayerPhotosPage() {
   const [uploadingId, setUploadingId] = useState<string | null>(null);
   const [editingBioId, setEditingBioId] = useState<string | null>(null);
   const [bioText, setBioText] = useState("");
-  const [uploadUrl, setUploadUrl] = useState("");
 
   useEffect(() => {
     const load = async () => {
       try {
         const [playersData, teamsData] = await Promise.all([
-          adminSelect('players', {}, { order: { field: 'name', ascending: true } }) as Promise<Player[]>,
+          adminSelect('players', {}, { 
+            select: '*, teams:team_id(name)',
+            order: { field: 'name', ascending: true } 
+          }) as Promise<Player[]>,
           adminSelect('teams') as Promise<Array<{ id: string; name: string }>>,
         ]);
         setPlayers(playersData);
@@ -62,13 +64,12 @@ export default function PlayerPhotosPage() {
     return matchesSearch && matchesTeam;
   });
 
-  const handlePhotoUpload = async (playerId: string) => {
-    if (!uploadUrl) return;
+  const handlePhotoUpload = async (playerId: string, url: string) => {
+    if (!url) return;
     setUploadingId(playerId);
     try {
-      await adminUpdate('players', { id: playerId }, { photo_url: uploadUrl });
-      setPlayers(players.map(p => p.id === playerId ? { ...p, photo_url: uploadUrl } : p));
-      setUploadUrl("");
+      await adminUpdate('players', { id: playerId }, { photo_url: url });
+      setPlayers(players.map(p => p.id === playerId ? { ...p, photo_url: url } : p));
       addToast({ type: "success", title: "Photo updated" });
     } catch {
       addToast({ type: "error", title: "Failed to update photo" });
@@ -180,21 +181,11 @@ export default function PlayerPhotosPage() {
               </div>
 
               <div className="flex gap-2">
-                <input
-                  type="url"
-                  value={uploadUrl}
-                  onChange={e => setUploadUrl(e.target.value)}
-                  placeholder="Photo URL..."
-                  className="flex-1 h-10 px-2 text-xs rounded-lg bg-white/5 border border-white/20"
+                <CloudinaryUpload 
+                  value={player.photo_url} 
+                  onSuccess={(url) => handlePhotoUpload(player.id, url)}
+                  className="w-full"
                 />
-                <button
-                  onClick={() => handlePhotoUpload(player.id)}
-                  disabled={!uploadUrl || uploadingId === player.id}
-                  className="min-h-[44px] min-w-[44px] px-3 py-2 bg-primary/10 hover:bg-primary/20 rounded-lg flex items-center justify-center"
-                  title="Upload Photo"
-                >
-                  <Upload className="w-4 h-4" />
-                </button>
               </div>
 
               <button

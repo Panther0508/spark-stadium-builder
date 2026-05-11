@@ -8,6 +8,15 @@ let cache: { data: Match[]; timestamp: number } | null = null;
 
 const CACHE_TTL = 60 * 1000; // 60 seconds
 
+// Helper to format match data from joined response
+function formatMatch(m: any): Match {
+  return {
+    ...m,
+    home_team: m.home_team?.name || (typeof m.home_team === 'string' ? m.home_team : 'Unknown'),
+    away_team: m.away_team?.name || (typeof m.away_team === 'string' ? m.away_team : 'Unknown'),
+  };
+}
+
 export async function GET() {
   // Check cache
   const now = Date.now();
@@ -20,20 +29,21 @@ export async function GET() {
      const { data } = await withRetry(async () => {
        const result = await supabase
          .from('matches')
-         .select('*')
+         .select('*, home_team:home_team_id(name), away_team:away_team_id(name)')
          .eq('is_verified', true)
          .order('match_date', { ascending: false });
        return result;
      }, { data: [] });
 
-    cache = { data: data || [], timestamp: now };
+    const formatted = (data || []).map(formatMatch);
+    cache = { data: formatted, timestamp: now };
 
-    return NextResponse.json(data || []);
-  } catch (error) {
-    console.error('Error fetching matches:', error);
-    return NextResponse.json(
-      { error: 'Failed to fetch matches' },
-      { status: 500 }
-    );
-  }
+     return NextResponse.json(formatted);
+   } catch (error) {
+     console.error('Error fetching matches:', error);
+     return NextResponse.json(
+       { error: 'Failed to fetch matches' },
+       { status: 500 }
+     );
+   }
 }

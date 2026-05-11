@@ -66,7 +66,7 @@ export async function GET() {
     ] = await Promise.all([
       withRetry(async () => {
         const result = await supabase
-          .from('standings')
+          .from('standings_with_teams')
           .select('*')
           .order('points', { ascending: false });
         return result;

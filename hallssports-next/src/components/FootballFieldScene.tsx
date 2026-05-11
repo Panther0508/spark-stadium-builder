@@ -1,6 +1,6 @@
 "use client";
 
-import { Canvas, useFrame } from "@react-three/fiber";
+import { Canvas, useFrame, useThree } from "@react-three/fiber";
 import { Fog } from "three";
 import { useMemo, useRef, useState, useEffect, Suspense, useCallback } from "react";
 import * as THREE from "three";
@@ -185,14 +185,14 @@ export function FootballFieldScene() {
 
   useEffect(() => {
     if (webglError) return;
-    
+
     const handleContextLost = (e: Event) => {
       e.preventDefault();
       setWebglError(true);
     };
-    
+
     document.addEventListener("webglcontextlost", handleContextLost);
-    
+
     return () => {
       document.removeEventListener("webglcontextlost", handleContextLost);
     };
@@ -211,22 +211,32 @@ export function FootballFieldScene() {
         dpr={[1, 1.5]}
         camera={{ position: [0, 22, 32], fov: 50 }}
         gl={{ antialias: true, alpha: false, preserveDrawingBuffer: true }}
-        onCreated={({ scene }) => { 
-          scene.fog = new Fog(isDark ? "#001a0d" : "#f0f0f0", 30, 70); 
-          scene.background = new THREE.Color(isDark ? "#020806" : "#ffffff"); 
-        }}
       >
         <Suspense fallback={null}>
           <Scene />
+          <SceneUpdate />
         </Suspense>
       </Canvas>
       {/* dark overlay for legibility */}
       <div className={cn(
         "absolute inset-0 pointer-events-none",
-        isDark 
-          ? "bg-gradient-to-b from-background/40 via-background/60 to-background/90" 
+        isDark
+          ? "bg-gradient-to-b from-background/40 via-background/60 to-background/90"
           : "bg-gradient-to-b from-white/10 via-white/30 to-white/60"
       )} />
     </div>
   );
+}
+
+function SceneUpdate() {
+  const { theme } = useTheme();
+  const isDark = theme === "dark";
+  const { scene } = useThree();
+
+  useEffect(() => {
+    scene.fog = new Fog(isDark ? "#001a0d" : "#f0f0f0", 30, 70);
+    scene.background = new THREE.Color(isDark ? "#020806" : "#ffffff");
+  }, [isDark, scene]);
+
+  return null;
 }

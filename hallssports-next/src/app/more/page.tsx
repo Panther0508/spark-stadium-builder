@@ -29,6 +29,7 @@ import {
   ArrowLeft
 } from "lucide-react";
 import { FeedbackModal } from "@/components/FeedbackModal";
+import { useTheme } from "@/contexts/ThemeContext";
 
 const MENU_ITEMS = [
   { id: "players", title: "Players", description: "View all tournament players", icon: Users, href: "/players" },
@@ -44,7 +45,7 @@ const MENU_ITEMS = [
 
 export default function MorePage() {
   const router = useRouter();
-  const [darkMode, setDarkMode] = useState(true);
+  const { theme, setTheme } = useTheme();
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
   return (
@@ -114,14 +115,15 @@ export default function MorePage() {
         <GlassCard className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-3">
-              {darkMode ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-yellow-500" />}
+              {theme === "dark" ? <Moon className="h-5 w-5 text-primary" /> : <Sun className="h-5 w-5 text-yellow-500" />}
               <span className="font-medium">Dark Mode</span>
             </div>
             <button
-              onClick={() => setDarkMode(!darkMode)}
-              className={`w-12 h-6 rounded-full ${darkMode ? "bg-primary" : "bg-white/20"} relative transition-colors`}
+              onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
+              className={`w-12 h-6 rounded-full ${theme === "dark" ? "bg-primary" : "bg-white/20"} relative transition-colors`}
+              aria-label={`Switch to ${theme === "dark" ? "light" : "dark"} mode`}
             >
-              <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${darkMode ? "right-0.5" : "left-0.5"}`} />
+              <div className={`w-5 h-5 rounded-full bg-white absolute top-0.5 transition-transform ${theme === "dark" ? "right-0.5" : "left-0.5"}`} />
             </button>
           </div>
         </GlassCard>

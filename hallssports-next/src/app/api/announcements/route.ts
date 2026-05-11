@@ -5,9 +5,12 @@ import { withRetry } from '@/lib/retry';
 interface Announcement {
   id: string;
   title: string;
-  content: string;
+  body: string;
+  image_url?: string;
+  category?: string;
+  author?: string;
   created_at: string;
-  verified: boolean;
+  is_verified: boolean;
   // add other fields as needed
 }
 
@@ -26,9 +29,9 @@ export async function GET() {
      const supabase = getSupabaseAdminClient();
      const { data } = await withRetry(async () => {
        const result = await supabase
-         .from('announcements')
-         .select('*')
-         .eq('verified', true)
+.from('announcements')
+          .select('*')
+          .eq('is_verified', true)
          .order('created_at', { ascending: false })
          .limit(10);
        return result;

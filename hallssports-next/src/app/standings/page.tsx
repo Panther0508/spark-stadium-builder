@@ -108,7 +108,7 @@ export default function StandingsPage() {
               <div className="grid grid-cols-5 items-center">
                 <div className="col-span-2 flex items-center gap-3">
                   <span className="w-6 text-primary font-bold">{index + 1}</span>
-                  <TeamLogo name={team.team.substring(0, 3)} color="#00A859" />
+                  <TeamLogo name={(team.team || "UNK").substring(0, 3)} color="#00A859" />
                   <span className="font-medium truncate">{team.team}</span>
                   {index < 2 && <Trophy className="h-4 w-4 text-yellow-500" />}
                 </div>

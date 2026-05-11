@@ -6,9 +6,10 @@ import { AdminCard } from "@/components/admin/AdminCard";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useState, useEffect } from "react";
-import { Plus, Edit, Trash2 } from "lucide-react";
+import { Plus, Edit, Trash2, Play } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
 import { getHighlights, createHighlight, deleteHighlight } from "./actions";
+import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
 
 type Highlight = {
   id: string;
@@ -120,15 +121,11 @@ export default function HighlightsPage() {
                     placeholder="Highlight title"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Media URL</label>
-                  <input
-                    type="url"
-                    value={formData.media_url}
-                    onChange={e => setFormData({ ...formData, media_url: e.target.value })}
-                    required
-                    className="w-full px-3 py-2 rounded-lg glass border border-white/20 bg-white/5 focus:border-primary focus:outline-none"
-                    placeholder="https://www.youtube.com/watch?v=... or image URL"
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1.5">Media Upload</label>
+                  <CloudinaryUpload 
+                    value={formData.media_url} 
+                    onSuccess={(url) => setFormData({ ...formData, media_url: url })} 
                   />
                 </div>
                 <div>
@@ -168,11 +165,16 @@ export default function HighlightsPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
           {highlights.map(h => (
             <AdminCard key={h.id} className="p-4">
-              <div className="aspect-video bg-black/20 rounded-lg mb-3 flex items-center justify-center overflow-hidden">
+              <div className="aspect-video bg-black/20 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative">
                 {h.media_type === "video" ? (
-                  <span className="text-sm text-muted-foreground truncate max-w-full px-2">
-                    🎬 {h.media_url}
-                  </span>
+                  <div className="flex flex-col items-center gap-2 px-4 text-center">
+                    <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
+                      <Play className="w-6 h-6 text-primary fill-primary" />
+                    </div>
+                    <span className="text-xs text-muted-foreground truncate max-w-full">
+                      {h.media_url}
+                    </span>
+                  </div>
                 ) : (
                   <img
                     src={h.media_url}

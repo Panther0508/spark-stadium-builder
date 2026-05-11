@@ -9,6 +9,7 @@ import { useToast } from "@/components/ToastProvider";
 import { adminSelect, adminUpdate } from "@/app/admin/actions";
 import { FullScreenOverlay } from "@/components/FullScreenOverlay";
 import { Upload, Shield } from "lucide-react";
+import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
 
 type Team = {
   id: string;
@@ -111,13 +112,10 @@ export default function TeamLogosPage() {
           <div className="space-y-4">
             <h2 className="text-xl font-bold">{selectedTeam?.name} Logo</h2>
             <div>
-              <label className="block text-sm font-medium mb-1.5">Logo URL</label>
-              <input
-                type="url"
-                value={uploadUrl}
-                onChange={e => setUploadUrl(e.target.value)}
-                placeholder="https://cloudinary.com/..."
-                className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20 focus:border-primary focus:outline-none"
+              <label className="block text-sm font-medium mb-1.5">Logo Image</label>
+              <CloudinaryUpload 
+                value={uploadUrl} 
+                onSuccess={(url) => setUploadUrl(url)} 
               />
             </div>
             <div className="flex gap-3 pt-2">

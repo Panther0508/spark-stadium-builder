@@ -150,7 +150,7 @@ export default function MatchesPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-4">
                       <TeamLogo
-                        name={match.home_team.substring(0, 3)}
+                        name={(match.home_team || "UNK").substring(0, 3)}
                         color="#00A859"
                       />
                       <div>

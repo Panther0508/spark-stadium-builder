@@ -46,8 +46,12 @@ export default function ManualOverridePage() {
     setLoading(true);
     try {
       const [matches, players, highlights, announcements] = await Promise.all([
-        adminSelect('matches', { is_verified: true }),
-        adminSelect('players', { is_verified: true }),
+        adminSelect('matches', { is_verified: true }, {
+          select: '*, home_team:home_team_id(name), away_team:away_team_id(name)',
+        }),
+        adminSelect('players', { is_verified: true }, {
+          select: '*, teams:team_id(name)',
+        }),
         adminSelect('highlights', { is_verified: true }),
         adminSelect('announcements', { is_verified: true }),
       ]);
@@ -147,7 +151,11 @@ export default function ManualOverridePage() {
                       <div key={item.id} className="flex items-center justify-between p-3 glass rounded-lg hover:bg-white/5 transition-colors">
                         <div className="flex-1 truncate pr-4">
                           <span className="font-medium">
-                            {section === "matches" ? `${item.home_team} vs ${item.away_team}` : section === "players" ? item.name : section === "highlights" ? item.title : item.title}
+                            {section === "matches" 
+                              ? `${item.home_team?.name || item.home_team_id || 'Unknown'} vs ${item.away_team?.name || item.away_team_id || 'Unknown'}` 
+                              : section === "players" 
+                                ? `${item.name} (${item.teams?.name || 'No Team'})` 
+                                : item.title || item.name || 'Untitled'}
                           </span>
                           <p className="text-xs text-muted-foreground truncate">{item.id}</p>
                         </div>
@@ -156,7 +164,9 @@ export default function ManualOverridePage() {
                             setSelectedItem({
                               id: item.id,
                               type: section,
-                              title: section === "matches" ? `${item.home_team} vs ${item.away_team}` : item.name || item.title,
+                              title: section === "matches" 
+                                ? `${item.home_team?.name || 'Unknown'} vs ${item.away_team?.name || 'Unknown'}` 
+                                : item.name || item.title || 'Untitled',
                               data: item,
                             });
                             setUnverifyChecked(false);

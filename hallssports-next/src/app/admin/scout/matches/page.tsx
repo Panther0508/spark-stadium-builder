@@ -8,11 +8,12 @@ import { useState, useEffect } from "react";
 import { Plus } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
 import { adminSelect, adminInsert, adminUpdate } from "@/app/admin/actions";
+import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
 
 type Match = {
   id: string;
-  home_team: string;
-  away_team: string;
+  home_team_id: string;
+  away_team_id: string;
   home_score?: number;
   away_score?: number;
   status: string;
@@ -21,21 +22,25 @@ type Match = {
   image_url?: string;
   is_verified?: boolean;
   community_visible?: boolean;
+  home_team?: { name: string };
+  away_team?: { name: string };
 };
+
+type Team = { id: string; name: string };
 
 export default function MatchesPage() {
   const { loading } = useAdminAuth("scout");
   const { addToast } = useToast();
   
   const [matches, setMatches] = useState<Match[]>([]);
-  const [teams, setTeams] = useState<string[]>([]);
+  const [teams, setTeams] = useState<Team[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [filter, setFilter] = useState<"all" | "scheduled" | "live" | "finished" | "pending">("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [editingMatch, setEditingMatch] = useState<Match | null>(null);
   const [formData, setFormData] = useState({
-    home_team: "",
-    away_team: "",
+    home_team_id: "",
+    away_team_id: "",
     match_date: "",
     venue: "",
     image_url: "",
@@ -47,11 +52,14 @@ export default function MatchesPage() {
     const load = async () => {
       try {
         const [matchesData, teamsData] = await Promise.all([
-          adminSelect('matches', {}, { order: { field: 'match_date', ascending: false } }) as Promise<Match[]>,
-          adminSelect('teams') as Promise<Array<{ name: string }>>,
+          adminSelect('matches', {}, { 
+            select: '*, home_team:home_team_id(name), away_team:away_team_id(name)',
+            order: { field: 'match_date', ascending: false } 
+          }) as Promise<Match[]>,
+          adminSelect('teams') as Promise<Team[]>,
         ]);
         setMatches(matchesData);
-        setTeams((teamsData || []).map(t => t.name));
+        setTeams(teamsData || []);
        } catch {
          addToast({ type: "error", title: "Failed to load data" });
        } finally {
@@ -69,7 +77,7 @@ export default function MatchesPage() {
 
   const columns = [
     { header: "Date", accessor: "match_date", className: "w-32" },
-    { header: "Teams", accessor: (row: Match) => `${row.home_team} vs ${row.away_team}` },
+    { header: "Teams", accessor: (row: Match) => `${row.home_team?.name || 'Unknown'} vs ${row.away_team?.name || 'Unknown'}` },
     { header: "Score", accessor: (row: Match) => `${row.home_score ?? "—"} : ${row.away_score ?? "—"}` },
     { header: "Status", accessor: "status" },
     { header: "Verified", accessor: (row: Match) => row.is_verified ? "✓" : "—", className: "w-20" },
@@ -78,11 +86,12 @@ export default function MatchesPage() {
   const handleSave = async () => {
     try {
       const data = {
-        home_team: formData.home_team,
-        away_team: formData.away_team,
+        home_team_id: formData.home_team_id,
+        away_team_id: formData.away_team_id,
         match_date: new Date(formData.match_date).toISOString(),
         venue: formData.venue,
         image_url: formData.image_url,
+        community_visible: formData.community_visible,
       };
 
       if (editingMatch) {
@@ -95,7 +104,10 @@ export default function MatchesPage() {
       
        setModalOpen(false);
        setEditingMatch(null);
-       const updated = await adminSelect('matches', {}, { order: { field: 'match_date', ascending: false } });
+       const updated = await adminSelect('matches', {}, { 
+         select: '*, home_team:home_team_id(name), away_team:away_team_id(name)',
+         order: { field: 'match_date', ascending: false } 
+       });
        setMatches(updated as Match[]);
      } catch (err) {
        const message = err instanceof Error ? err.message : "Failed to save match";
@@ -121,7 +133,7 @@ export default function MatchesPage() {
           <button
             onClick={() => {
               setEditingMatch(null);
-              setFormData({ home_team: "", away_team: "", match_date: "", venue: "", image_url: "", featured: false, community_visible: false });
+              setFormData({ home_team_id: "", away_team_id: "", match_date: "", venue: "", image_url: "", featured: false, community_visible: false });
               setModalOpen(true);
             }}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"
@@ -154,23 +166,23 @@ export default function MatchesPage() {
           <div className="space-y-4">
             <AdminFormField label="Home Team">
               <select
-                value={formData.home_team}
-                onChange={e => setFormData({ ...formData, home_team: e.target.value })}
+                value={formData.home_team_id}
+                onChange={e => setFormData({ ...formData, home_team_id: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
               >
                 <option value="">Select team</option>
-                {teams.map(t => <option key={t} value={t}>{t}</option>)}
+                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </AdminFormField>
             
             <AdminFormField label="Away Team">
               <select
-                value={formData.away_team}
-                onChange={e => setFormData({ ...formData, away_team: e.target.value })}
+                value={formData.away_team_id}
+                onChange={e => setFormData({ ...formData, away_team_id: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
               >
                 <option value="">Select team</option>
-                {teams.map(t => <option key={t} value={t}>{t}</option>)}
+                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
               </select>
             </AdminFormField>
             
@@ -193,13 +205,10 @@ export default function MatchesPage() {
               />
             </AdminFormField>
 
-            <AdminFormField label="Cover Image URL">
-              <input
-                type="url"
-                value={formData.image_url}
-                onChange={e => setFormData({ ...formData, image_url: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
-                placeholder="https://cloudinary.com/..."
+            <AdminFormField label="Cover Image">
+              <CloudinaryUpload 
+                value={formData.image_url} 
+                onSuccess={(url) => setFormData({ ...formData, image_url: url })} 
               />
             </AdminFormField>
 

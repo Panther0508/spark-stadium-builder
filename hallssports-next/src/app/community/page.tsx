@@ -330,7 +330,7 @@ function CommunityContent() {
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
               <TeamLogo
-                name={matchInfo.home_team.substring(0, 3)}
+                name={(matchInfo.home_team || "UNK").substring(0, 3)}
                 color="#00A859"
               />
               <div>

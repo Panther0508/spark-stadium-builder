@@ -131,7 +131,7 @@ export default function LineupPage() {
         <GlassCard className="p-4">
           <div className="flex items-center justify-between">
             <div className="flex items-center gap-4">
-              <TeamLogo name={lineup.match.home_team.substring(0, 3)} color="#00A859" />
+              <TeamLogo name={(lineup.match.home_team || "UNK").substring(0, 3)} color="#00A859" />
               <div>
                 <h3 className="font-bold">{lineup.match.home_team} vs {lineup.match.away_team}</h3>
                 <p className="text-xs text-muted-foreground">{lineup.match.venue}</p>

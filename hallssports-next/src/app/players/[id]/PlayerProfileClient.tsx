@@ -49,7 +49,7 @@ export default function PlayerProfileClient({ player }: { player: Player }) {
               <div className="flex-1 text-center md:text-left">
                 <h1 className="text-3xl font-bold mb-2">{player.name}</h1>
                 <div className="flex items-center justify-center md:justify-start gap-4 mb-3">
-                  <TeamLogo name={player.team.substring(0, 3)} color="#00A859" />
+                  <TeamLogo name={(player.team || "UNK").substring(0, 3)} color="#00A859" />
                   <span className="text-xl font-semibold">{player.team}</span>
                 </div>
                 <div className="flex items-center justify-center md:justify-start gap-4 text-sm">

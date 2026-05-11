@@ -98,6 +98,13 @@ const mockMatches: Match[] = [
   },
 ];
 
+// Helper to format match data from joined response
+const formatMatch = (m: any): Match => ({
+  ...m,
+  home_team: m.home_team?.name || (typeof m.home_team === 'string' ? m.home_team : 'Unknown'),
+  away_team: m.away_team?.name || (typeof m.away_team === 'string' ? m.away_team : 'Unknown'),
+});
+
 // Fetch a featured match with fallback logic
 export async function getFeaturedMatch(): Promise<Match | null> {
   const client = getSupabaseSafe();
@@ -106,40 +113,40 @@ export async function getFeaturedMatch(): Promise<Match | null> {
   try {
     const { data } = await client
       .from('matches')
-      .select('*')
+      .select('*, home_team:home_team_id(name), away_team:away_team_id(name)')
       .eq('is_verified', true)
       .eq('featured', true)
       .single();
 
-    if (data) return data;
+    if (data) return formatMatch(data);
   } catch {}
 
   // Fallback to live match
   try {
     const { data: liveData } = await client
       .from('matches')
-      .select('*')
+      .select('*, home_team:home_team_id(name), away_team:away_team_id(name)')
       .eq('is_verified', true)
       .eq('status', 'live')
       .order('match_date', { ascending: false })
       .limit(1)
       .single();
 
-    if (liveData) return liveData;
+    if (liveData) return formatMatch(liveData);
   } catch {}
 
   // Fallback to scheduled match
   try {
     const { data: scheduledData } = await client
       .from('matches')
-      .select('*')
+      .select('*, home_team:home_team_id(name), away_team:away_team_id(name)')
       .eq('is_verified', true)
       .eq('status', 'scheduled')
       .order('match_date', { ascending: true })
       .limit(1)
       .single();
 
-    if (scheduledData) return scheduledData;
+    if (scheduledData) return formatMatch(scheduledData);
   } catch {}
 
   return mockMatches[0];
@@ -154,14 +161,14 @@ export async function getUpcomingMatches(limit = 10): Promise<Match[]> {
   try {
     const { data, error } = await client
       .from('matches')
-      .select('*')
+      .select('*, home_team:home_team_id(name), away_team:away_team_id(name)')
       .eq('is_verified', true)
       .eq('status', 'scheduled')
       .gt('match_date', now)
       .order('match_date', { ascending: true })
       .limit(limit);
 
-    if (!error && data) return data;
+    if (!error && data) return data.map(formatMatch);
   } catch {}
 
   return mockMatches.filter(m => m.status === 'scheduled').slice(0, limit);
@@ -214,12 +221,12 @@ export async function getAllMatches(limit = 100): Promise<Match[]> {
   try {
     const { data } = await client
       .from('matches')
-      .select('*')
+      .select('*, home_team:home_team_id(name), away_team:away_team_id(name)')
       .eq('is_verified', true)
       .order('match_date', { ascending: false })
       .limit(limit);
 
-    if (data) return data;
+    if (data) return data.map(formatMatch);
   } catch {}
 
   return mockMatches;
@@ -233,12 +240,12 @@ export async function getLiveMatches(): Promise<Match[]> {
   try {
     const { data } = await client
       .from('matches')
-      .select('*')
+      .select('*, home_team:home_team_id(name), away_team:away_team_id(name)')
       .eq('is_verified', true)
       .eq('status', 'live')
       .order('match_date', { ascending: true });
 
-    if (data) return data;
+    if (data) return data.map(formatMatch);
   } catch {}
 
   return mockMatches.filter(m => m.status === 'live');
@@ -256,11 +263,11 @@ export async function getMatchById(matchId: string): Promise<Match> {
   try {
     const { data } = await client
       .from('matches')
-      .select('*')
+      .select('*, home_team:home_team_id(name), away_team:away_team_id(name)')
       .eq('id', matchId)
       .single();
 
-    if (data) return data;
+    if (data) return formatMatch(data);
   } catch {}
 
   const mock = mockMatches.find(m => m.id === matchId);
@@ -339,11 +346,15 @@ export async function getPlayerById(playerId: string): Promise<Player | null> {
   try {
     const { data } = await client
       .from('players')
-      .select('*')
+      .select('*, team:team_id(name)')
       .eq('id', playerId)
       .single();
 
-    return data || null;
+    if (data) {
+      const d = data as any;
+      return { ...d, team: d.team?.name || d.team || 'Unknown' };
+    }
+    return null;
   } catch {
     return null;
   }
@@ -357,11 +368,14 @@ export async function getPlayers(): Promise<Player[]> {
   try {
     const { data } = await client
       .from('players')
-      .select('*')
+      .select('*, team:team_id(name)')
       .eq('is_verified', true)
       .order('name', { ascending: true });
 
-    return data || [];
+    if (data) {
+      return (data as any[]).map(p => ({ ...p, team: p.team?.name || p.team || 'Unknown' }));
+    }
+    return [];
   } catch {
     return [];
   }

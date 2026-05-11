@@ -42,9 +42,9 @@ export async function adminDelete(table: string, filters: Filter) {
   return { success: true };
 }
 
-export async function adminSelect(table: string, filters?: Filter, options?: { order?: { field: string; ascending?: boolean } }) {
+export async function adminSelect(table: string, filters?: Filter, options?: { select?: string; order?: { field: string; ascending?: boolean } }) {
   const supabase = getSupabaseAdminClient();
-  let query = supabase.from(table).select('*');
+  let query = supabase.from(table).select(options?.select || '*');
   if (filters) {
     query = (query as any).match(filters);
   }
@@ -85,6 +85,6 @@ export async function adminUpsert(table: string, data: any, onConflict: string =
   return { success: true };
 }
 
-export async function adminFetchAll(table: string, filters?: Filter, options?: { order?: { field: string; ascending?: boolean } }) {
+export async function adminFetchAll(table: string, filters?: Filter, options?: { select?: string; order?: { field: string; ascending?: boolean } }) {
   return adminSelect(table, filters, options);
 }

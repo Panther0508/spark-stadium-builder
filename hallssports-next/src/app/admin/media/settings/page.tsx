@@ -10,11 +10,12 @@ import { useToast } from "@/components/ToastProvider";
 import { adminSelect, adminUpsert } from "@/app/admin/actions";
 import { Plus, Trash2, Upload, User } from "lucide-react";
 import { FullScreenOverlay } from "@/components/FullScreenOverlay";
+import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
 
 type Person = {
   name: string;
   role: string;
-  photo?: string;
+  photo_url?: string;
 };
 
 type EditingPerson = Person & { _index?: number };
@@ -24,7 +25,6 @@ type Settings = {
   about_description: string;
   organizers: Person[];
   contributors: Person[];
-  pantero_link: string;
 };
 
 export default function SettingsPage() {
@@ -36,14 +36,13 @@ export default function SettingsPage() {
     about_description: "",
     organizers: [],
     contributors: [],
-    pantero_link: "https://pantero.vercel.app",
   });
   const [loadingData, setLoadingData] = useState(true);
   const [saving, setSaving] = useState(false);
   const [showPersonModal, setShowPersonModal] = useState(false);
   const [currentPanel, setCurrentPanel] = useState<"organizers" | "contributors">("organizers");
   const [editingPerson, setEditingPerson] = useState<EditingPerson | null>(null);
-  const [personForm, setPersonForm] = useState({ name: "", role: "", photo: "" });
+  const [personForm, setPersonForm] = useState({ name: "", role: "", photo_url: "" });
 
   useEffect(() => {
     const fetchSettings = async () => {
@@ -51,6 +50,10 @@ export default function SettingsPage() {
         const data = await adminSelect('settings') as Array<{ key: string; value: string }>;
         if (data) {
           const settingsObj = data.reduce((acc, s) => {
+            if (s.key === 'pantero_url') {
+              // Skip: Pantero URL is managed via environment variable, not editable by admins
+              return acc;
+            }
             if (s.key === 'organizers' || s.key === 'contributors') {
               try {
                 acc[s.key] = JSON.parse(s.value);
@@ -81,7 +84,6 @@ export default function SettingsPage() {
         { key: "about_description", value: settings.about_description },
         { key: "organizers", value: JSON.stringify(settings.organizers) },
         { key: "contributors", value: JSON.stringify(settings.contributors) },
-        { key: "pantero_link", value: settings.pantero_link },
       ];
       await adminUpsert('settings', updates, 'key');
       addToast({ type: "success", title: "Settings saved" });
@@ -95,13 +97,13 @@ export default function SettingsPage() {
 
   const addPerson = () => {
     setEditingPerson(null);
-    setPersonForm({ name: "", role: "", photo: "" });
+    setPersonForm({ name: "", role: "", photo_url: "" });
     setShowPersonModal(true);
   };
 
   const editPerson = (person: Person, index: number) => {
     setEditingPerson({ ...person, _index: index });
-    setPersonForm({ name: person.name, role: person.role, photo: person.photo || "" });
+    setPersonForm({ name: person.name, role: person.role, photo_url: person.photo_url || "" });
     setShowPersonModal(true);
   };
 
@@ -116,11 +118,11 @@ export default function SettingsPage() {
 
   const savePerson = () => {
     if (!personForm.name || !personForm.role) return;
-    
+
     const person: Person = {
       name: personForm.name,
       role: personForm.role,
-      photo: personForm.photo,
+      photo_url: personForm.photo_url,
     };
 
     if (editingPerson && editingPerson._index !== undefined) {
@@ -172,14 +174,6 @@ export default function SettingsPage() {
               className="w-full min-h-32 px-3 py-2 rounded-lg bg-white/5 border border-white/20"
             />
           </AdminFormField>
-
-          <AdminFormField label="Pantero Link">
-            <input
-              value={settings.pantero_link}
-              onChange={e => setSettings({ ...settings, pantero_link: e.target.value })}
-              className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20"
-            />
-          </AdminFormField>
         </AdminCard>
 
         <div className="border-t border-primary/30 my-6" />
@@ -193,8 +187,8 @@ export default function SettingsPage() {
             {settings.organizers.map((person, index) => (
               <div key={index} className="glass rounded-xl p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
-                  {person.photo ? (
-                    <img src={person.photo} alt={person.name} className="max-w-full max-h-full object-cover" />
+                  {person.photo_url ? (
+                    <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" />
                   ) : (
                     <User className="w-5 h-5 text-muted-foreground m-auto" />
                   )}
@@ -240,8 +234,8 @@ export default function SettingsPage() {
             {settings.contributors.map((person, index) => (
               <div key={index} className="glass rounded-xl p-4 flex items-center gap-3">
                 <div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
-                  {person.photo ? (
-                    <img src={person.photo} alt={person.name} className="max-w-full max-h-full object-cover" />
+                  {person.photo_url ? (
+                    <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" />
                   ) : (
                     <User className="w-5 h-5 text-muted-foreground m-auto" />
                   )}
@@ -305,19 +299,16 @@ export default function SettingsPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium mb-1.5">Photo URL</label>
-              <input
-                type="url"
-                value={personForm.photo}
-                onChange={e => setPersonForm({ ...personForm, photo: e.target.value })}
-                className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20"
-                placeholder="https://cloudinary.com/..."
+              <label className="block text-sm font-medium mb-1.5">Photo</label>
+              <CloudinaryUpload
+                value={personForm.photo_url}
+                onSuccess={(url) => setPersonForm({ ...personForm, photo_url: url })}
               />
             </div>
             <div className="flex gap-3 pt-2">
               <button
                 onClick={() => setShowPersonModal(false)}
-                className="flex-1 min-h-[44px] px-4 py-2 rounded-lg glass hover:bg-white/20"
+                className="flex-1 min-h-[44px] px-4 py-2 rounded-lg glass hover:bg-white/10"
               >
                 Cancel
               </button>

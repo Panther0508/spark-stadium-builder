@@ -179,15 +179,15 @@ export default function HomePage() {
             </div>
             <div className="flex items-center justify-center gap-6 py-4">
               <div className="text-center">
-                <TeamLogo name={featuredMatch.home_team.substring(0,3)} color="#00A859" />
-                <div className="mt-2 text-lg font-bold">{featuredMatch.home_team}</div>
+                <TeamLogo name={(featuredMatch.home_team || "UNK").substring(0,3)} color="#00A859" />
+                <div className="mt-2 text-lg font-bold">{featuredMatch.home_team || "Unknown"}</div>
               </div>
               <div className="text-4xl font-black">
                 {featuredMatch.status === "scheduled" ? "—" : `${featuredMatch.home_score ?? 0} : ${featuredMatch.away_score ?? 0}`}
               </div>
               <div className="text-center">
-                <TeamLogo name={featuredMatch.away_team.substring(0,3)} color="#CC0000" />
-                <div className="mt-2 text-lg font-bold">{featuredMatch.away_team}</div>
+                <TeamLogo name={(featuredMatch.away_team || "UNK").substring(0,3)} color="#CC0000" />
+                <div className="mt-2 text-lg font-bold">{featuredMatch.away_team || "Unknown"}</div>
               </div>
             </div>
             <div className="text-center text-sm text-muted-foreground">

@@ -10,6 +10,15 @@ const eventsCache = new Map<string, { data: MatchEvent[]; timestamp: number }>()
 
 const CACHE_TTL = 10 * 1000; // 10 seconds
 
+// Helper to format match data from joined response
+function formatMatch(m: any): Match {
+  return {
+    ...m,
+    home_team: m.home_team?.name || (typeof m.home_team === 'string' ? m.home_team : 'Unknown'),
+    away_team: m.away_team?.name || (typeof m.away_team === 'string' ? m.away_team : 'Unknown'),
+  };
+}
+
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const matchId = searchParams.get('matchId');
@@ -44,7 +53,7 @@ export async function GET(request: NextRequest) {
       const { data } = await withRetry(async () => {
         const result = await supabase
           .from('matches')
-          .select('*')
+          .select('*, home_team:home_team_id(name), away_team:away_team_id(name)')
           .eq('id', matchId)
           .single();
         return result;
@@ -54,7 +63,7 @@ export async function GET(request: NextRequest) {
         return NextResponse.json({ error: 'Match not found' }, { status: 404 });
       }
 
-      matchData = data as Match;
+      matchData = formatMatch(data);
       matchCache.set(matchId, { data: matchData, timestamp: now });
     }
 

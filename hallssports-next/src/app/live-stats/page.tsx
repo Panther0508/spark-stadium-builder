@@ -8,25 +8,25 @@ import { PageShell } from "@/components/PageShell";
 import { StatusBadge, TeamLogo } from "@/components/StatusBadge";
 import { Activity, Clock, Share2 } from "lucide-react";
 
-const MOCK_LIVE_MATCHES = [
+const MOCK_LIVE_MATCHES: LiveMatch[] = [
   {
     id: "live1",
     home_team: "Rangers FC",
     away_team: "Panthers United",
     home_score: 2,
     away_score: 2,
-    status: "live" as const,
+    status: "live",
     minute: 67,
     venue: "Halls Stadium",
     events: [
-      { id: 1, type: "goal", minute: 12, team: "home", player: "James Wilson", assist: "Mike Johnson" },
-      { id: 2, type: "yellow_card", minute: 23, team: "away", player: "Tom Davis" },
-      { id: 3, type: "goal", minute: 34, team: "away", player: "Alex Smith", assist: "Chris Brown" },
-      { id: 4, type: "substitution", minute: 45, team: "home", player_out: "Sam Taylor", player_in: "Rob Lee" },
-      { id: 5, type: "goal", minute: 52, team: "home", player: "James Wilson", assist: "Dan Miller" },
-      { id: 6, type: "red_card", minute: 58, team: "away", player: "Tom Davis" },
-      { id: 7, type: "goal", minute: 65, team: "away", player: "Alex Smith", assist: "Pat King" },
-      { id: 8, type: "substitution", minute: 66, team: "away", player_out: "Chris Brown", player_in: "Matt White" },
+      { id: "1", type: "goal", minute: 12, team: "home", player: "James Wilson", assist: "Mike Johnson" },
+      { id: "2", type: "yellow", minute: 23, team: "away", player: "Tom Davis" },
+      { id: "3", type: "goal", minute: 34, team: "away", player: "Alex Smith", assist: "Chris Brown" },
+      { id: "4", type: "sub", minute: 45, team: "home", player_out: "Sam Taylor", player_in: "Rob Lee" },
+      { id: "5", type: "goal", minute: 52, team: "home", player: "James Wilson", assist: "Dan Miller" },
+      { id: "6", type: "red", minute: 58, team: "away", player: "Tom Davis" },
+      { id: "7", type: "goal", minute: 65, team: "away", player: "Alex Smith", assist: "Pat King" },
+      { id: "8", type: "sub", minute: 66, team: "away", player_out: "Chris Brown", player_in: "Matt White" },
     ],
   },
   {
@@ -35,12 +35,12 @@ const MOCK_LIVE_MATCHES = [
     away_team: "City Eagles",
     home_score: 1,
     away_score: 0,
-    status: "live" as const,
+    status: "live",
     minute: 23,
     venue: "North Field",
     events: [
-      { id: 1, type: "goal", minute: 8, team: "home", player: "Luke Adams", assist: "Tom Clark" },
-      { id: 2, type: "yellow_card", minute: 15, team: "home", player: "Mark Evans" },
+      { id: "1", type: "goal", minute: 8, team: "home", player: "Luke Adams", assist: "Tom Clark" },
+      { id: "2", type: "yellow", minute: 15, team: "home", player: "Mark Evans" },
     ],
   },
   {
@@ -49,44 +49,45 @@ const MOCK_LIVE_MATCHES = [
     away_team: "United Stars",
     home_score: 0,
     away_score: 0,
-    status: "half-time" as const,
+    status: "half-time",
     minute: 45,
     venue: "South Stadium",
     events: [
-      { id: 1, type: "yellow_card", minute: 22, team: "away", player: "Ben Hall" },
-      { id: 2, type: "substitution", minute: 45, team: "home", player_out: "Tim Green", player_in: "Nick Black" },
+      { id: "1", type: "yellow", minute: 22, team: "away", player: "Ben Hall" },
+      { id: "2", type: "sub", minute: 45, team: "home", player_out: "Tim Green", player_in: "Nick Black" },
     ],
   },
 ];
 
 type MatchEvent = {
-  id: number;
-  type: "goal" | "yellow_card" | "red_card" | "substitution";
+  id: string;
+  type: "goal" | "yellow" | "red" | "sub";
   minute: number;
   team: "home" | "away";
   player?: string;
   assist?: string;
   player_out?: string;
   player_in?: string;
-} | {
-  id: number;
-  type: "goal";
-  minute: number;
-  team: "home" | "away";
-  player: string;
-  assist?: string;
-  player_out?: undefined;
-  player_in?: undefined;
 };
 
-type LiveMatch = typeof MOCK_LIVE_MATCHES[0];
+type LiveMatch = {
+  id: string;
+  home_team: string;
+  away_team: string;
+  home_score?: number;
+  away_score?: number;
+  status: "scheduled" | "live" | "finished" | "half-time";
+  minute?: number;
+  venue?: string;
+  events: MatchEvent[];
+};
 
 function getEventIcon(type: MatchEvent["type"]) {
   switch (type) {
     case "goal": return "⚽";
-    case "yellow_card": return "🟨";
-    case "red_card": return "🟥";
-    case "substitution": return "🔄";
+    case "yellow": return "🟨";
+    case "red": return "🟥";
+    case "sub": return "🔄";
     default: return "•";
   }
 }
@@ -96,12 +97,12 @@ function getEventText(event: MatchEvent, match: LiveMatch) {
   switch (event.type) {
     case "goal":
       return `${event.player} scores for ${team}${event.assist ? ` (assist: ${event.assist})` : ""}`;
-    case "yellow_card":
+    case "yellow":
       return `${event.player} (${team}) receives a yellow card`;
-    case "red_card":
+    case "red":
       return `${event.player} (${team}) is sent off!`;
-    case "substitution":
-      return `${event.player_in} replaces ${event.player_out} for ${team}`;
+    case "sub":
+      return `${event.player_in || "Unknown"} replaces ${event.player_out || "Unknown"} for ${team}`;
     default: return "";
   }
 }
@@ -137,13 +138,14 @@ export default function LiveStatsPage() {
   };
 
   const simulateGoal = () => {
+    if (!activeMatch) return;
     setSimulatingGoal(true);
     triggerConfetti();
-    const newEvent = {
-      id: Date.now(),
-      type: "goal" as const,
-      minute: (activeMatch?.minute || 0) + 1,
-      team: "home" as const,
+    const newEvent: MatchEvent = {
+      id: Date.now().toString(),
+      type: "goal",
+      minute: (activeMatch.minute || 0) + 1,
+      team: "home",
       player: "Simulated Player",
       assist: "Sim Assistant",
     };
@@ -153,7 +155,7 @@ export default function LiveStatsPage() {
           ? {
               ...m,
               events: [...m.events, newEvent],
-              home_score: m.home_score + 1,
+              home_score: (m.home_score || 0) + 1,
             }
           : m
       )
@@ -215,7 +217,7 @@ export default function LiveStatsPage() {
                   : "glass hover:bg-white/20"
               }`}
             >
-              {match.home_team.substring(0, 3)} vs {match.away_team.substring(0, 3)}
+              { (match.home_team || "UNK").substring(0, 3) } vs { (match.away_team || "UNK").substring(0, 3) }
             </button>
           ))}
         </div>
@@ -232,20 +234,20 @@ export default function LiveStatsPage() {
               </div>
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-4 flex-1">
-                  <TeamLogo name={activeMatch.home_team.substring(0, 3)} color="#00A859" />
+                  <TeamLogo name={(activeMatch.home_team || "UNK").substring(0, 3)} color="#00A859" />
                   <div>
                     <div className="font-bold text-xl">{activeMatch.home_team}</div>
                     <div className="text-sm text-muted-foreground">{activeMatch.venue}</div>
                   </div>
                 </div>
                 <div className="text-5xl font-black tabular-nums px-6">
-                  {activeMatch.home_score} : {activeMatch.away_score}
+                  {activeMatch.home_score ?? 0} : {activeMatch.away_score ?? 0}
                 </div>
                 <div className="flex items-center gap-4 flex-1 justify-end">
                   <div className="text-right">
                     <div className="font-bold text-xl">{activeMatch.away_team}</div>
                   </div>
-                  <TeamLogo name={activeMatch.away_team.substring(0, 3)} color="#4361EE" />
+                  <TeamLogo name={(activeMatch.away_team || "UNK").substring(0, 3)} color="#4361EE" />
                 </div>
               </div>
               <div className="flex justify-center">
@@ -269,7 +271,30 @@ export default function LiveStatsPage() {
                   {activeMatch.events
                     .sort((a, b) => b.minute - a.minute)
                     .map((event, index) => {
-                      const eventIcon = typeof event.type === 'string' ? getEventIcon(event.type as "goal" | "yellow_card" | "red_card" | "substitution") : "•";
+                      const eventIcon = (() => {
+                        switch (event.type) {
+                          case "goal": return "⚽";
+                          case "yellow": return "🟨";
+                          case "red": return "🟥";
+                          case "sub": return "🔄";
+                          default: return "•";
+                        }
+                      })();
+                      let eventText = "";
+                      switch (event.type) {
+                        case "goal":
+                          eventText = `${event.player} scored a goal${event.assist ? ` (assist: ${event.assist})` : ""}`;
+                          break;
+                        case "yellow":
+                          eventText = `${event.player} received a yellow card`;
+                          break;
+                        case "red":
+                          eventText = `${event.player} sent off!`;
+                          break;
+                        case "sub":
+                          eventText = `${event.player_in || "?"} in, ${event.player_out || "?"} out`;
+                          break;
+                      }
                       return (
                         <motion.div
                           key={event.id}
@@ -280,8 +305,8 @@ export default function LiveStatsPage() {
                         >
                           <div className="text-2xl">{eventIcon}</div>
                           <div className="flex-1">
-                            <div className="font-medium">{getEventText(event as MatchEvent, activeMatch)}</div>
-                            <div className="text-xs text-muted-foreground">{event.minute}&apos;</div>
+                            <div className="font-medium">{eventText}</div>
+                            <div className="text-xs text-muted-foreground">{event.minute}'</div>
                           </div>
                         </motion.div>
                       );

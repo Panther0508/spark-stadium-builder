@@ -169,7 +169,7 @@ export default function AboutPage() {
             This tournament platform is proudly powered by Pantero, bringing innovative technology to grassroots football.
           </p>
           <a
-            href="https://pantero.vercel.app"
+            href={process.env.NEXT_PUBLIC_PANTERO_URL || "https://pantero.vercel.app"}
             target="_blank"
             rel="noopener noreferrer"
             className="inline-flex items-center gap-2 px-6 py-3 bg-primary text-white font-bold rounded-lg hover:bg-primary/90 transition-colors"
