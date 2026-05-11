@@ -3,10 +3,12 @@
 import { GlassCard } from "@/components/GlassCard";
 import { PageShell } from "@/components/PageShell";
 import { motion } from "framer-motion";
+import { BackButton } from "@/components/BackButton";
 
 export default function PrivacyPage() {
   return (
     <PageShell title="Privacy Policy">
+      <BackButton />
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
         <GlassCard className="p-6">
           <h1 className="text-2xl font-bold mb-4">Privacy Policy</h1>

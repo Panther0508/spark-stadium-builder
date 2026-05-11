@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import { PageShell } from "@/components/PageShell";
 import { GlassCard } from "@/components/GlassCard";
+import { BackButton } from "@/components/BackButton";
 import { Skeleton } from "@/components/Skeleton";
 import { ErrorState } from "@/components/ErrorState";
 import { useToast } from "@/components/ToastProvider";
@@ -113,6 +114,7 @@ export default function ReferralPage() {
 
   return (
     <PageShell title="Referrals">
+      <BackButton />
       <div className="space-y-6">
         <GlassCard className="p-6">
           <div className="flex items-center gap-3 mb-4">

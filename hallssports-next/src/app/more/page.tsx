@@ -6,6 +6,7 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { PageShell } from "@/components/PageShell";
+import { BackButton } from "@/components/BackButton";
 import { 
   ExternalLink, 
   Shield, 
@@ -48,6 +49,7 @@ export default function MorePage() {
 
   return (
     <PageShell title="More">
+      <BackButton />
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

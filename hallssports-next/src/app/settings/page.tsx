@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { PageShell } from "@/components/PageShell";
 import { GlassCard } from "@/components/GlassCard";
+import { BackButton } from "@/components/BackButton";
 import { GlassToggle } from "@/components/FormElements";
 import { useTheme } from "@/contexts/ThemeContext";
 import { Bell, Palette, MessageCircle, Trash2 } from "lucide-react";
@@ -59,6 +60,7 @@ export default function SettingsPage() {
 
   return (
     <PageShell title="Settings">
+      <BackButton />
       <div className="space-y-6">
         <GlassCard className="p-4">
           <div className="flex items-center gap-2 mb-4">

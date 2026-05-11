@@ -5,6 +5,7 @@ import Image from "next/image";
 import { GlassCard } from "@/components/GlassCard";
 import { PageShell } from "@/components/PageShell";
 import { TeamLogo } from "@/components/StatusBadge";
+import { BackButton } from "@/components/BackButton";
 import { Shirt, BarChart3, User } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -26,6 +27,7 @@ export default function PlayerProfileClient({ player }: { player: Player }) {
 
   return (
     <PageShell>
+      <BackButton />
       <motion.div
         initial="hidden"
         animate="visible"

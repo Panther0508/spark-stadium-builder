@@ -6,6 +6,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { GlassModal } from "@/components/GlassModal";
 import { PageShell } from "@/components/PageShell";
 import { ShimmerLoader } from "@/components/ShimmerLoader";
+import { BackButton } from "@/components/BackButton";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { sanitizeHtml } from "@/lib/sanitize";
@@ -85,6 +86,7 @@ export default function AboutPage() {
 
   return (
     <PageShell title="About">
+      <BackButton />
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}

@@ -6,6 +6,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { PageShell } from "@/components/PageShell";
 import { TeamLogo } from "@/components/StatusBadge";
+import { BackButton } from "@/components/BackButton";
 import { Trophy, TrendingUp, TrendingDown, Minus } from "lucide-react";
 
 interface Standing {
@@ -83,6 +84,7 @@ export default function StandingsPage() {
 
   return (
     <PageShell title="Standings">
+      <BackButton />
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-4">
         {/* Header */}
         <GlassCard className="p-4">

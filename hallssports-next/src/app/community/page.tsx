@@ -9,6 +9,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { PageShell } from "@/components/PageShell";
 import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { StatusBadge, TeamLogo, type MatchStatus } from "@/components/StatusBadge";
+import { BackButton } from "@/components/BackButton";
 import { formatDistanceToNow } from "date-fns";
 import { useChatRealtime } from "@/hooks/useChatRealtime";
 import type { MatchChat, Match, MatchEvent } from "@/lib/queries";
@@ -266,6 +267,7 @@ function CommunityContent() {
 
   return (
     <PageShell title="Community">
+      <BackButton />
       <AnimatePresence>
         {celebration && (
           <motion.div

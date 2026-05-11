@@ -5,6 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { PageShell } from "@/components/PageShell";
+import { BackButton } from "@/components/BackButton";
 import { Trophy, BarChart3, Shield, CornerDownRight, AlertCircle } from "lucide-react";
 import Image from "next/image";
 
@@ -87,6 +88,7 @@ export default function LeadersPage() {
 
   return (
     <PageShell title="Leaders">
+      <BackButton />
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
         {/* Tabs */}
         <div className="flex flex-wrap gap-2">

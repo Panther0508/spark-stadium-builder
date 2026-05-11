@@ -6,6 +6,7 @@ import { motion } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { PageShell } from "@/components/PageShell";
+import { BackButton } from "@/components/BackButton";
 import { Film } from "lucide-react";
 import { ShareButton } from "@/components/ShareButton";
 import LiteYouTubeEmbed from "react-lite-youtube-embed";
@@ -82,6 +83,7 @@ export default function HighlightsPage() {
 
   return (
     <PageShell title="Highlights">
+      <BackButton />
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
         {/* Category Filter */}
         <div className="flex gap-2 overflow-x-auto scrollbar-hide">

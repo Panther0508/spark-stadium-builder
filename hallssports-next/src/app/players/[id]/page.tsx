@@ -3,6 +3,7 @@ import type { Metadata } from "next";
 import PlayerProfileClient from "./PlayerProfileClient";
 import { PageShell } from "@/components/PageShell";
 import { GlassCard } from "@/components/GlassCard";
+import { BackButton } from "@/components/BackButton";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
@@ -39,6 +40,7 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
   if (!player) {
     return (
       <PageShell title="Player Profile">
+        <BackButton />
         <GlassCard className="p-6 text-center">
           <p className="text-muted-foreground">Player not found</p>
         </GlassCard>

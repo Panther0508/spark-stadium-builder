@@ -6,6 +6,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { PageShell } from "@/components/PageShell";
 import { StatusBadge, TeamLogo } from "@/components/StatusBadge";
+import { BackButton } from "@/components/BackButton";
 import { Search } from "lucide-react";
 import { format } from "date-fns";
 
@@ -108,6 +109,7 @@ export default function MatchesPage() {
 
   return (
     <PageShell title="Matches">
+      <BackButton />
       {/* Search & Filter */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="relative flex-1">

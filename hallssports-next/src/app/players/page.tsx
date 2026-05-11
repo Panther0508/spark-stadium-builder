@@ -8,6 +8,7 @@ import { GlassCard } from "@/components/GlassCard";
 import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { PageShell } from "@/components/PageShell";
 import { Search, User, Shirt } from "lucide-react";
+import { BackButton } from "@/components/BackButton";
 
 type Player = {
   id: string;
@@ -97,6 +98,7 @@ export default function PlayersPage() {
 
   return (
     <PageShell title="Players">
+      <BackButton />
       {/* Search & Filter */}
       <div className="flex flex-col md:flex-row gap-4 mb-6">
         <div className="relative flex-1">

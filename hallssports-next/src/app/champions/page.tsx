@@ -6,6 +6,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { PageShell } from "@/components/PageShell";
+import { BackButton } from "@/components/BackButton";
 import { Trophy, Award, Calendar, ChevronDown } from "lucide-react";
 
 type Award = {
@@ -77,6 +78,7 @@ export default function ChampionsPage() {
 
   return (
     <PageShell title="Champions">
+      <BackButton />
       <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
         {/* Current Season Awards */}
         <section>
