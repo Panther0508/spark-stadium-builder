@@ -101,12 +101,11 @@
     #__next::-webkit-scrollbar-thumb:hover { background: var(--primary-glow); }
     h1, h2, h3, h4 { font-family: var(--font-display); letter-spacing: -0.02em; }
 
-   /* Accessible focus visible ring for all interactive elements */
-   :where(a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])):focus-visible {
-     @apply ring-2 ring-green-500 ring-offset-2 outline-none;
-   }
- }
-
+    /* Accessible focus visible ring for all interactive elements */
+    :where(a, button, input, textarea, select, [tabindex]:not([tabindex="-1"])):focus-visible {
+      @apply ring-2 ring-green-500 ring-offset-2 outline-none;
+    }
+}
 @layer utilities {
   .glass {
     background: var(--glass);
@@ -146,55 +145,61 @@
   .custom-scrollbar::-webkit-scrollbar-thumb { background: var(--primary); border-radius: 4px; }
   .custom-scrollbar::-webkit-scrollbar-thumb:hover { background: var(--primary-glow); }
   .custom-scrollbar { scrollbar-width: thin; scrollbar-color: var(--primary) transparent; }
-
-  /* Light theme overrides */
-  html:not(.dark) {
-    --background: #F5F5F5;
-    --foreground: #0F0F0F;
-    --card: #FFFFFF;
-    --card-foreground: #0F0F0F;
-    --glass: rgba(0, 0, 0, 0.03);
-    --glass-strong: rgba(0, 0, 0, 0.06);
-    --glass-border: rgba(0, 0, 0, 0.1);
-    --muted: #E5E5E5;
-    --muted-foreground: #555555;
-  }
-
-  html:not(.dark) .glass,
-  html:not(.dark) .glass-strong {
-    background: rgba(0, 0, 0, 0.03);
-    border: 1px solid rgba(0, 0, 0, 0.1);
-  }
-
-  html:not(.dark) body {
-    background: #F5F5F5;
-    color: #0F0F0F;
-  }
-
-  /* Print styles */
-  @media print {
-    body {
-      background: white !important;
-      color: black !important;
-    }
-    .glass, .glass-strong {
-      background: white !important;
-      border: 1px solid black !important;
-      backdrop-filter: none !important;
-    }
-    .text-primary, .text-primary-foreground {
-      color: black !important;
-    }
-    .bg-background, .bg-card {
-      background: white !important;
-    }
-    /* Hide 3D background, nav */
-    canvas, nav, .fixed.bottom-0, .sticky.top-0, button[aria-label="Toggle menu"] {
-      display: none !important;
-    }
-    /* Ensure content is visible */
-    #__next, main {
-      padding: 0 !important;
-    }
-  }
 }
+
+   /* Light theme overrides */
+   html:not(.dark) {
+     --background: #F5F5F5;
+     --foreground: #0F0F0F;
+     --card: #FFFFFF;
+     --card-foreground: #0F0F0F;
+     --glass: rgba(0, 0, 0, 0.03);
+     --glass-strong: rgba(0, 0, 0, 0.06);
+     --glass-border: rgba(0, 0, 0, 0.1);
+     --muted: #E5E5E5;
+     --muted-foreground: #555555;
+   }
+
+   html:not(.dark) .glass,
+   html:not(.dark) .glass-strong {
+     background: rgba(0, 0, 0, 0.03);
+     border: 1px solid rgba(0, 0, 0, 0.1);
+   }
+
+   html:not(.dark) body {
+     background: #F5F5F5;
+     color: #0F0F0F;
+   }
+
+   /* Print styles */
+   @media print {
+     body {
+       background: white !important;
+       color: black !important;
+     }
+     .glass, .glass-strong {
+       background: white !important;
+       border: 1px solid black !important;
+       backdrop-filter: none !important;
+     }
+     .text-primary, .text-primary-foreground {
+       color: black !important;
+     }
+     .bg-background, .bg-card {
+       background: white !important;
+     }
+     /* Hide 3D background, nav */
+     canvas, nav, .fixed.bottom-0, .sticky.top-0, button[aria-label="Toggle menu"] {
+       display: none !important;
+     }
+     /* Ensure content is visible */
+     #__next, main {
+       padding: 0 !important;
+     }
+   }
+
+   ::-webkit-scrollbar { width: 6px; height: 6px; }
+   ::-webkit-scrollbar-track { background: transparent; }
+   ::-webkit-scrollbar-thumb { background: rgba(0, 168, 89, 0.4); border-radius: 3px; }
+   ::-webkit-scrollbar-thumb:hover { background: rgba(0, 168, 89, 0.7); }
+   * { scrollbar-width: thin; scrollbar-color: rgba(0, 168, 89, 0.4) transparent; }

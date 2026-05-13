@@ -4,7 +4,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { supabase } from "@/lib/supabase";
 import type { RealtimeChannel } from "@supabase/supabase-js";
 import { getRealtimeConnectionDelay } from "@/lib/realtimeDelay";
-import type { MatchChat } from "@/lib/queries";
+import type { MatchChat, MatchEvent } from "@/lib/queries";
 
 type ConnectionStatus = "idle" | "connecting" | "connected" | "disconnected" | "polling";
 
@@ -18,7 +18,7 @@ interface UseChatRealtimeResult {
 export function useChatRealtime(
   matchId: string,
   initialMessages: MatchChat[],
-  onGoal?: (event: { match_id: string; team: string; player_name: string }) => void
+  onGoal?: (event: MatchEvent) => void
 ): UseChatRealtimeResult {
   const [messages, setMessages] = useState<MatchChat[]>(initialMessages);
   const [status, setStatus] = useState<ConnectionStatus>("idle");
@@ -85,7 +85,7 @@ export function useChatRealtime(
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "match_events", filter: `match_id=eq.${matchId}` },
-        (payload: { new: any }) => {
+        (payload: { new: MatchEvent }) => {
           if (payload.new.type === 'goal' && onGoal) {
             onGoal(payload.new);
           }
@@ -115,7 +115,7 @@ export function useChatRealtime(
         }, 10000);
       }
     }, 5000);
-  }, [matchId, clearAllTimers]);
+  }, [matchId, clearAllTimers, onGoal]);
 
   const poll = useCallback(async () => {
     if (!matchId) return;

@@ -5,7 +5,6 @@ export { PageShell } from "./PageShell";
 export { StatusBadge, TeamLogo } from "./StatusBadge";
 export { MatchStatusBadge } from "./MatchStatusBadge";
 export { BottomNav } from "./BottomNav";
-export { MoreDrawer } from "./MoreDrawer";
 export { CookieConsent } from "./CookieConsent";
 export { ErrorBoundary } from "./ErrorBoundary";
 export { ClientLayout } from "./ClientLayout";

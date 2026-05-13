@@ -8,7 +8,7 @@ import { Skeleton } from "@/components/Skeleton";
 import { PageShell } from "@/components/PageShell";
 import { StatusBadge, TeamLogo } from "@/components/StatusBadge";
 import { ErrorState } from "@/components/ErrorState";
-import { MessageCircle, ChevronRight, Users, Trophy, BarChart3 } from "lucide-react";
+import { MessageCircle, ChevronRight, Users, Trophy, BarChart3, Sparkles } from "lucide-react";
 import { InstallAppButton } from "@/components/InstallAppButton";
 import { format, formatDistanceToNow } from "date-fns";
 import { OnboardingFlow } from "@/components/OnboardingFlow";
@@ -60,12 +60,21 @@ export default function HomePage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
+  const [aiInsight, setAiInsight] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
+
+        // Fetch AI Insight (simulated or real)
+        const insights = [
+          "Expect a high-scoring match between Team A and Team B based on recent form.",
+          "Player X is on a scoring streak! Watch out for them in the next match.",
+          "The championship race is tightening up after the latest results."
+        ];
+        setAiInsight(insights[Math.floor(Math.random() * insights.length)]);
 
         // Fetch all matches in parallel
         const matchesRes = await fetch("/api/matches");
@@ -160,6 +169,24 @@ export default function HomePage() {
           Never miss a moment.
         </motion.p>
       </section>
+
+      {/* AI Insight Card */}
+      {aiInsight && (
+        <section className="mb-8">
+          <GlassCard className="p-6 border-primary/30 bg-primary/5 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-4 opacity-10 group-hover:opacity-20 transition-opacity">
+              <Sparkles className="h-24 w-24 text-primary" />
+            </div>
+            <div className="flex items-center gap-2 mb-3">
+              <div className="p-2 bg-primary/20 rounded-lg">
+                <Sparkles className="h-5 w-5 text-primary" />
+              </div>
+              <h3 className="font-bold text-lg">AI Match Insight</h3>
+            </div>
+            <p className="text-muted-foreground relative z-10">{aiInsight}</p>
+          </GlassCard>
+        </section>
+      )}
 
       {/* Featured Match */}
       {featuredMatch && (

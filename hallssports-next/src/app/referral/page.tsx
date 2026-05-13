@@ -5,7 +5,6 @@ import { PageShell } from "@/components/PageShell";
 import { GlassCard } from "@/components/GlassCard";
 import { BackButton } from "@/components/BackButton";
 import { Skeleton } from "@/components/Skeleton";
-import { ErrorState } from "@/components/ErrorState";
 import { useToast } from "@/components/ToastProvider";
 import { ShareButton } from "@/components/ShareButton";
 import { Gift } from "lucide-react";
@@ -19,7 +18,6 @@ export default function ReferralPage() {
   const [userCode, setUserCode] = useState<string>("");
   const [referralCount, setReferralCount] = useState<number | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(false);
   const { addToast } = useToast();
 
   const fetchReferralCount = async (code: string) => {
@@ -93,26 +91,19 @@ export default function ReferralPage() {
     ? `${window.location.origin}?ref=${userCode}` 
     : "";
 
-  if (loading) {
-    return (
-      <PageShell title="Referrals">
-        <div className="space-y-4">
-          <Skeleton className="h-48 w-full" />
-          <Skeleton className="h-24 w-full" />
-        </div>
-      </PageShell>
-    );
-  }
+if (loading) {
+     return (
+       <PageShell title="Referrals">
+         <BackButton />
+         <div className="space-y-6">
+           <Skeleton className="h-48 w-full" />
+           <Skeleton className="h-24 w-full" />
+         </div>
+       </PageShell>
+     );
+   }
 
-  if (error) {
-    return (
-      <PageShell title="Referrals">
-        <ErrorState message="Could not load referral stats." onRetry={() => fetchReferralCount(userCode)} />
-      </PageShell>
-    );
-  }
-
-  return (
+   return (
     <PageShell title="Referrals">
       <BackButton />
       <div className="space-y-6">

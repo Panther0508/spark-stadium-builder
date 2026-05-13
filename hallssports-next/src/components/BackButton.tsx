@@ -1,18 +1,18 @@
-"use client";
+'use client';
 
-import { useRouter } from "next/navigation";
-import { ArrowLeft } from "lucide-react";
+import React from 'react';
+import { useRouter } from 'next/navigation';
+import { ChevronLeft } from 'lucide-react';
 
 export function BackButton() {
   const router = useRouter();
-
   return (
     <button
-      onClick={() => router.push("/")}
+      onClick={() => router.push('/')}
       aria-label="Back to Home"
-      className="absolute top-4 left-4 z-30 w-11 h-11 rounded-full glass-strong flex items-center justify-center border border-glass-border hover:bg-white/20 transition-all active:scale-95"
+      className="absolute top-4 left-4 z-[110] flex items-center justify-center w-11 h-11 bg-white/10 backdrop-blur-md border border-white/20 rounded-full hover:bg-white/20 transition-colors"
     >
-      <ArrowLeft className="h-5 w-5 text-foreground" />
+      <ChevronLeft className="w-6 h-6 text-white" />
     </button>
   );
 }

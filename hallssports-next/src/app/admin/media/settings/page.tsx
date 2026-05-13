@@ -7,10 +7,10 @@ import { Skeleton } from "@/components/Skeleton";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ToastProvider";
-import { adminSelect, adminUpsert } from "@/app/admin/actions";
+import { adminSelect } from "@/app/admin/actions";
 import { Plus, Trash2, Upload, User } from "lucide-react";
 import { FullScreenOverlay } from "@/components/FullScreenOverlay";
-import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
+import ImageUpload from "@/components/admin/ImageUpload";
 
 type Person = {
   name: string;
@@ -49,22 +49,22 @@ export default function SettingsPage() {
       try {
         const data = await adminSelect('settings') as Array<{ key: string; value: string }>;
         if (data) {
-          const settingsObj = data.reduce((acc, s) => {
-            if (s.key === 'pantero_url') {
-              // Skip: Pantero URL is managed via environment variable, not editable by admins
-              return acc;
-            }
-            if (s.key === 'organizers' || s.key === 'contributors') {
-              try {
-                acc[s.key] = JSON.parse(s.value);
-              } catch {
-                acc[s.key] = [];
-              }
-            } else {
-              acc[s.key] = s.value;
-            }
-            return acc;
-          }, {} as Record<string, any>);
+const settingsObj = data.reduce((acc, s) => {
+             if (s.key === 'pantero_url') {
+               // Skip: Pantero URL is managed via environment variable, not editable by admins
+               return acc;
+             }
+             if (s.key === 'organizers' || s.key === 'contributors') {
+               try {
+                 acc[s.key] = JSON.parse(s.value);
+               } catch {
+                 acc[s.key] = [];
+               }
+             } else {
+               acc[s.key] = s.value;
+             }
+             return acc;
+           }, {} as Record<string, unknown>);
           setSettings(prev => ({ ...prev, ...settingsObj }));
         }
       } catch {
@@ -85,7 +85,18 @@ export default function SettingsPage() {
         { key: "organizers", value: JSON.stringify(settings.organizers) },
         { key: "contributors", value: JSON.stringify(settings.contributors) },
       ];
-      await adminUpsert('settings', updates, 'key');
+      
+      const res = await fetch('/api/admin/settings-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updates)
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to save settings');
+      }
+      
       addToast({ type: "success", title: "Settings saved" });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to save";
@@ -186,13 +197,13 @@ export default function SettingsPage() {
           <div className="space-y-3">
             {settings.organizers.map((person, index) => (
               <div key={index} className="glass rounded-xl p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
-                  {person.photo_url ? (
-                    <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" />
-                  ) : (
-                    <User className="w-5 h-5 text-muted-foreground m-auto" />
-                  )}
-                </div>
+<div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
+                   {person.photo_url ? (
+                     <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" /* eslint-disable-line @next/next/no-img-element */ />
+                   ) : (
+                     <User className="w-5 h-5 text-muted-foreground m-auto" />
+                   )}
+                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">{person.name}</div>
                   <div className="text-sm text-primary">{person.role}</div>
@@ -233,13 +244,13 @@ export default function SettingsPage() {
           <div className="space-y-3">
             {settings.contributors.map((person, index) => (
               <div key={index} className="glass rounded-xl p-4 flex items-center gap-3">
-                <div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
-                  {person.photo_url ? (
-                    <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" />
-                  ) : (
-                    <User className="w-5 h-5 text-muted-foreground m-auto" />
-                  )}
-                </div>
+<div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
+                   {person.photo_url ? (
+                     <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" /* eslint-disable-line @next/next/no-img-element */ />
+                   ) : (
+                     <User className="w-5 h-5 text-muted-foreground m-auto" />
+                   )}
+                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">{person.name}</div>
                   <div className="text-sm text-primary">{person.role}</div>
@@ -300,9 +311,10 @@ export default function SettingsPage() {
             </div>
             <div>
               <label className="block text-sm font-medium mb-1.5">Photo</label>
-              <CloudinaryUpload
+              <ImageUpload
+                label="Photo"
                 value={personForm.photo_url}
-                onSuccess={(url) => setPersonForm({ ...personForm, photo_url: url })}
+                onUpload={(url) => setPersonForm({ ...personForm, photo_url: url })}
               />
             </div>
             <div className="flex gap-3 pt-2">

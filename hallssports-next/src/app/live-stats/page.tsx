@@ -82,31 +82,6 @@ type LiveMatch = {
   events: MatchEvent[];
 };
 
-function getEventIcon(type: MatchEvent["type"]) {
-  switch (type) {
-    case "goal": return "⚽";
-    case "yellow": return "🟨";
-    case "red": return "🟥";
-    case "sub": return "🔄";
-    default: return "•";
-  }
-}
-
-function getEventText(event: MatchEvent, match: LiveMatch) {
-  const team = event.team === "home" ? match.home_team : match.away_team;
-  switch (event.type) {
-    case "goal":
-      return `${event.player} scores for ${team}${event.assist ? ` (assist: ${event.assist})` : ""}`;
-    case "yellow":
-      return `${event.player} (${team}) receives a yellow card`;
-    case "red":
-      return `${event.player} (${team}) is sent off!`;
-    case "sub":
-      return `${event.player_in || "Unknown"} replaces ${event.player_out || "Unknown"} for ${team}`;
-    default: return "";
-  }
-}
-
 export default function LiveStatsPage() {
   const [liveMatches, setLiveMatches] = useState<LiveMatch[]>([]);
   const [activeMatchId, setActiveMatchId] = useState<string>("");
@@ -306,7 +281,7 @@ export default function LiveStatsPage() {
                           <div className="text-2xl">{eventIcon}</div>
                           <div className="flex-1">
                             <div className="font-medium">{eventText}</div>
-                            <div className="text-xs text-muted-foreground">{event.minute}'</div>
+                            <div className="text-xs text-muted-foreground">{event.minute}&apos;</div>
                           </div>
                         </motion.div>
                       );

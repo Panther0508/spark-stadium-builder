@@ -29,6 +29,9 @@ const pwaOptions = {
   register: true,
   skipWaiting: true,
   swSrc: "./service-worker.js",
+  fallbacks: {
+    document: "/offline.html",
+  },
   runtimeCaching: [
     {
       urlPattern: /^https:\/\/fonts\.(?:googleapis|gstatic)\.com\/.*/i,

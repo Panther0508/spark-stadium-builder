@@ -16,8 +16,8 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     };
   }
 
-  const title = `${player.name} (${player.team}) – Player Profile | HallsSports`;
-  const description = `View stats, bio, and career highlights for ${player.name}, playing for ${player.team} in the FUTO hostel competition.`;
+  const title = `${player.name} – Player Profile | HallsSports`;
+  const description = `Stats and recent matches for ${player.name} (${player.team}, #${player.number || "N/A"}). Follow their performance in the FUTO hostel tournament.`;
 
   return {
     title,
@@ -25,11 +25,11 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     openGraph: {
       title,
       description,
-      url: `${SITE_URL}/players/${player.id}`,
-      images: player.photo ? [{ url: player.photo }] : undefined,
+      url: `/players/${player.id}`,
+      images: [{ url: player.photo || "/og-image.png" }],
     },
     alternates: {
-      canonical: `${SITE_URL}/players/${player.id}`,
+      canonical: `/players/${player.id}`,
     },
   };
 }
@@ -48,5 +48,28 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
     );
   }
 
-  return <PlayerProfileClient player={player} />;
+  const jsonLd = {
+    "@context": "https://schema.org",
+    "@type": "Person",
+    "name": player.name,
+    "image": player.photo || `${SITE_URL}/og-image.png`,
+    "jobTitle": "Football Player",
+    "memberOf": {
+      "@type": "SportsTeam",
+      "name": player.team
+    },
+    "description": `Football player ${player.name} playing for ${player.team} in the FUTO hostel competition.`
+  };
+
+  const jsonLdString = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+
+  return (
+    <>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: jsonLdString }}
+      />
+      <PlayerProfileClient player={player} />
+    </>
+  );
 }

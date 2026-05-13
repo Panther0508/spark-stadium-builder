@@ -1,13 +1,12 @@
 "use client";
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { AdminCard } from "@/components/admin/AdminCard";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useState, useEffect } from "react";
-import { Plus, Minus, User } from "lucide-react";
+import { Plus, Minus, User, RefreshCw } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
-import { adminSelect, adminUpdate, adminInsert } from "@/app/admin/actions";
+import { adminSelect } from "@/app/admin/actions";
 import { FullScreenOverlay } from "@/components/FullScreenOverlay";
 
 type Match = {
@@ -41,8 +40,10 @@ export default function LiveScorePage() {
   const [players, setPlayers] = useState<Player[]>([]);
   const [showPlayerModal, setShowPlayerModal] = useState(false);
   const [pendingAction, setPendingAction] = useState<{ type: "goal" | "yellow" | "red", team: "home" | "away" } | null>(null);
+  
+  const [error, setError] = useState<string | null>(null);
 
-  // Auto-calculate minute from match_date if live
+// Auto-calculate minute from match_date if live
   useEffect(() => {
     if (!selectedMatch || selectedMatch.status !== "live") return;
     
@@ -58,39 +59,46 @@ export default function LiveScorePage() {
 
   useEffect(() => {
     const fetchMatches = async () => {
+      setError(null);
+      setLoadingData(true);
       try {
         const data = await adminSelect('matches', {}, {
           select: '*, home_team:home_team_id(name), away_team:away_team_id(name)'
         }) as Match[];
         setMatches(data);
       } catch (err) {
-        console.error('Failed to fetch matches:', err);
+        const message = err instanceof Error ? err.message : "Failed to fetch matches";
+        setError(message);
+        addToast({ type: "error", title: message });
       } finally {
         setLoadingData(false);
       }
     };
     fetchMatches();
-  }, []);
+  }, [addToast]);
 
   useEffect(() => {
     if (!selectedMatch) {
-      setPlayers([]);
+      Promise.resolve().then(() => setPlayers([]));
       return;
     }
     const fetchPlayers = async () => {
-      const data = await adminSelect('players', {
-        // We can't easily do OR filters in adminSelect match currently, 
-        // so we fetch all and filter or just fetch all verified players.
-      }, { order: { field: 'name' } }) as Player[];
-      
-      const teamPlayers = data.filter(p => 
-        p.team_id === selectedMatch.home_team_id || 
-        p.team_id === selectedMatch.away_team_id
-      );
-      setPlayers(teamPlayers);
+      try {
+        const data = await adminSelect('players', {}, { order: { field: 'name' } }) as Player[];
+        
+        const teamPlayers = data.filter(p => 
+          p.team_id === selectedMatch.home_team_id || 
+          p.team_id === selectedMatch.away_team_id
+        );
+        setPlayers(teamPlayers);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Failed to load players";
+        setError(message);
+        addToast({ type: "error", title: message });
+      }
     };
     fetchPlayers();
-  }, [selectedMatch]);
+  }, [selectedMatch, addToast]);
 
   const handleQuickAction = (type: "goal" | "yellow" | "red", team: "home" | "away") => {
     setPendingAction({ type, team });
@@ -101,14 +109,18 @@ export default function LiveScorePage() {
     if (!selectedMatch || !pendingAction) return;
 
     try {
-      await adminInsert("match_events", {
-        match_id: selectedMatch.id,
-        player_id: player.id,
-        player_name: player.name,
-        type: pendingAction.type,
-        minute,
-        is_verified: false,
+      const res = await fetch('/api/admin/match-event-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          match_id: selectedMatch.id,
+          player_id: player.id,
+          player_name: player.name,
+          type: pendingAction.type,
+          minute,
+        })
       });
+      if (!res.ok) throw new Error('Failed to log action');
 
       if (pendingAction.type === "goal") {
         await handleScoreChange(pendingAction.team, true);
@@ -117,8 +129,9 @@ export default function LiveScorePage() {
       setShowPlayerModal(false);
       setPendingAction(null);
     } catch (err) {
-      console.error("Action log error:", err);
-      addToast({ type: "error", title: "Failed to log action" });
+      const message = err instanceof Error ? err.message : "Failed to log action";
+      setError(message);
+      addToast({ type: "error", title: message });
     }
   };
 
@@ -129,11 +142,18 @@ export default function LiveScorePage() {
     if (!selectedMatch) return;
     if (!confirm(`Change match status to ${newStatus}?`)) return;
     try {
-      await adminUpdate('matches', { id: selectedMatch.id }, { status: newStatus });
+      const res = await fetch('/api/admin/match-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId: selectedMatch.id, status: newStatus })
+      });
+      if (!res.ok) throw new Error('Failed to update status');
       setSelectedMatch({ ...selectedMatch, status: newStatus });
       addToast({ type: "success", title: `Match set to ${newStatus}` });
-    } catch {
-      addToast({ type: "error", title: "Failed to update status" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to update status";
+      setError(message);
+      addToast({ type: "error", title: message });
     }
   };
 
@@ -143,12 +163,36 @@ export default function LiveScorePage() {
     const currentValue = selectedMatch[field] ?? 0;
     const newValue = increment ? currentValue + 1 : Math.max(0, currentValue - 1);
     try {
-      await adminUpdate('matches', { id: selectedMatch.id }, { [field]: newValue });
+      const res = await fetch('/api/admin/match-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ matchId: selectedMatch.id, [field]: newValue })
+      });
+      if (!res.ok) throw new Error('Failed to update score');
       setSelectedMatch({ ...selectedMatch, [field]: newValue });
     } catch (err) {
-      console.error('Failed to update score:', err);
+      const message = err instanceof Error ? err.message : "Failed to update score";
+      setError(message);
+      addToast({ type: "error", title: message });
     }
   };
+
+   const handleRetry = async () => {
+     setError(null);
+     setLoadingData(true);
+     try {
+       const data = await adminSelect('matches', {}, {
+         select: '*, home_team:home_team_id(name), away_team:away_team_id(name)'
+       }) as Match[];
+       setMatches(data);
+     } catch (err) {
+       const message = err instanceof Error ? err.message : "Failed to fetch matches";
+       setError(message);
+       addToast({ type: "error", title: message });
+     } finally {
+       setLoadingData(false);
+     }
+   };
 
   if (loading || loadingData) {
     return (
@@ -160,15 +204,47 @@ export default function LiveScorePage() {
     );
   }
 
-  const teamIdToFilter = pendingAction?.team === "home" ? selectedMatch?.home_team_id : selectedMatch?.away_team_id;
-  const filteredPlayers = players.filter(p => p.team_id === teamIdToFilter);
+  if (error) {
+    return (
+      <AdminLayout role="scout">
+        <div className="space-y-6">
+          <div className="flex items-center justify-between">
+            <h1 className="text-2xl font-bold">Live Score Entry</h1>
+            <div className="flex gap-2">
+              <button
+                onClick={handleRetry}
+                className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"
+              >
+                <RefreshCw className="w-4 h-4" />
+                Retry
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+            <div className="flex">
+              <div className="flex-shrink-0">
+                <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                  <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+                </svg>
+              </div>
+              <div className="ml-3">
+                <h3 className="text-sm font-medium text-red-800">Error loading live data</h3>
+                <div className="mt-2 text-sm text-red-700">{error}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </AdminLayout>
+    );
+  }
 
   return (
     <AdminLayout role="scout">
       <div className="space-y-6">
         <h1 className="text-2xl font-bold">Live Score Entry</h1>
 
-        <AdminCard className="p-6">
+        <div className="glass rounded-xl p-4 border border-white/20 backdrop-blur-xl">
           <label className="text-sm font-medium mb-2 block">Select Match</label>
           <select
             value={selectedMatch?.id || ""}
@@ -185,11 +261,11 @@ export default function LiveScorePage() {
               </option>
             ))}
           </select>
-        </AdminCard>
+        </div>
 
         {selectedMatch && (
           <>
-            <AdminCard className="p-6">
+            <div className="glass rounded-xl p-4 border border-white/20 backdrop-blur-xl">
               <div className="text-center mb-4">
                 <div className="text-3xl font-bold mb-2">
                   {selectedMatch.home_team?.name} <span className="text-primary">{selectedMatch.home_score}</span> : <span className="text-primary">{selectedMatch.away_score}</span> {selectedMatch.away_team?.name}
@@ -203,13 +279,13 @@ export default function LiveScorePage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleScoreChange("home", false)}
-                      className="p-4 glass rounded-lg hover:bg-white/20 min-h-[44px]"
+                      className="p-4 glass rounded-xl hover:bg-white/20 min-h-[44px] border border-white/20"
                     >
                       <Minus className="w-6 h-6" />
                     </button>
                     <button
                       onClick={() => handleScoreChange("home", true)}
-                      className="p-4 glass rounded-lg hover:bg-white/20 min-h-[44px]"
+                      className="p-4 glass rounded-xl hover:bg-white/20 min-h-[44px] border border-white/20"
                     >
                       <Plus className="w-6 h-6" />
                     </button>
@@ -220,96 +296,112 @@ export default function LiveScorePage() {
                   <div className="flex gap-2">
                     <button
                       onClick={() => handleScoreChange("away", false)}
-                      className="p-4 glass rounded-lg hover:bg-white/20 min-h-[44px]"
+                      className="p-4 glass rounded-xl hover:bg-white/20 min-h-[44px] border border-white/20"
                     >
                       <Minus className="w-6 h-6" />
                     </button>
                     <button
                       onClick={() => handleScoreChange("away", true)}
-                      className="p-4 glass rounded-lg hover:bg-white/20 min-h-[44px]"
+                      className="p-4 glass rounded-xl hover:bg-white/20 min-h-[44px] border border-white/20"
                     >
                       <Plus className="w-6 h-6" />
                     </button>
                   </div>
                 </div>
               </div>
-            </AdminCard>
+            </div>
 
-            <AdminCard className="p-6">
+            <div className="glass rounded-xl p-4 border border-white/20 backdrop-blur-xl">
               <h3 className="font-bold mb-3">Match Lifecycle</h3>
               <div className="flex gap-2">
                 <button 
                   onClick={() => handleStatusChange("live")} 
                   disabled={selectedMatch.status === "live"}
-                  className="flex-1 min-h-[44px] py-2 bg-green-500/20 text-green-400 rounded-lg text-sm font-bold disabled:opacity-50"
+                  className="flex-1 min-h-[44px] py-2 bg-green-500/20 text-green-400 rounded-lg text-sm font-bold disabled:opacity-50 border border-white/20"
                 >
                   Start Match
                 </button>
                 <button 
                   onClick={() => handleStatusChange("half-time")} 
                   disabled={selectedMatch.status === "half-time"}
-                  className="flex-1 min-h-[44px] py-2 bg-yellow-500/20 text-yellow-400 rounded-lg text-sm font-bold disabled:opacity-50"
+                  className="flex-1 min-h-[44px] py-2 bg-yellow-500/20 text-yellow-400 rounded-lg text-sm font-bold disabled:opacity-50 border border-white/20"
                 >
                   Half-Time
                 </button>
                 <button 
                   onClick={() => handleStatusChange("finished")} 
-                  className="flex-1 min-h-[44px] py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-bold"
+                  className="flex-1 min-h-[44px] py-2 bg-red-500/20 text-red-400 rounded-lg text-sm font-bold border border-white/20"
                 >
                   Full-Time
                 </button>
               </div>
-            </AdminCard>
+            </div>
 
-            <AdminCard className="p-6">
+            <div className="glass rounded-xl p-4 border border-white/20 backdrop-blur-xl">
               <h3 className="font-bold mb-3">Quick Actions</h3>
               <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                <button onClick={() => handleQuickAction("goal", "home")} className="min-h-[44px] py-2 bg-primary/20 rounded-lg text-sm">Home Goal</button>
-                <button onClick={() => handleQuickAction("goal", "away")} className="min-h-[44px] py-2 bg-primary/20 rounded-lg text-sm">Away Goal</button>
-                <button onClick={() => handleQuickAction("yellow", "home")} className="min-h-[44px] py-2 bg-yellow-500/20 rounded-lg text-sm">Home Yellow</button>
-                <button onClick={() => handleQuickAction("red", "home")} className="min-h-[44px] py-2 bg-red-500/20 rounded-lg text-sm">Home Red</button>
-                <button onClick={() => handleQuickAction("yellow", "away")} className="min-h-[44px] py-2 bg-yellow-500/20 rounded-lg text-sm">Away Yellow</button>
-                <button onClick={() => handleQuickAction("red", "away")} className="min-h-[44px] py-2 bg-red-500/20 rounded-lg text-sm">Away Red</button>
+                <button onClick={() => handleQuickAction("goal", "home")} className="min-h-[44px] py-2 bg-primary/20 rounded-lg text-sm border border-white/20">Home Goal</button>
+                <button onClick={() => handleQuickAction("goal", "away")} className="min-h-[44px] py-2 bg-primary/20 rounded-lg text-sm border border-white/20">Away Goal</button>
+                <button onClick={() => handleQuickAction("yellow", "home")} className="min-h-[44px] py-2 bg-yellow-500/20 rounded-lg text-sm border border-white/20">Home Yellow</button>
+                <button onClick={() => handleQuickAction("red", "home")} className="min-h-[44px] py-2 bg-red-500/20 rounded-lg text-sm border border-white/20">Home Red</button>
+                <button onClick={() => handleQuickAction("yellow", "away")} className="min-h-[44px] py-2 bg-yellow-500/20 rounded-lg text-sm border border-white/20">Away Yellow</button>
+                <button onClick={() => handleQuickAction("red", "away")} className="min-h-[44px] py-2 bg-red-500/20 rounded-lg text-sm border border-white/20">Away Red</button>
               </div>
-            </AdminCard>
-
-            <FullScreenOverlay
-              isOpen={showPlayerModal}
-              onClose={() => setShowPlayerModal(false)}
-            >
-              <div className="space-y-4">
-                <h2 className="text-xl font-bold capitalize">Select Player for {pendingAction?.type}</h2>
-                <div className="grid grid-cols-1 gap-2 max-h-[60vh] overflow-y-auto">
-                  {filteredPlayers.length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4">No players found for this team.</p>
-                  ) : (
-                    filteredPlayers.map(player => (
-                      <button
-                        key={player.id}
-                        onClick={() => logAction(player)}
-                        className="flex items-center gap-3 p-3 glass rounded-xl hover:bg-white/10 transition-colors text-left"
-                      >
-                        <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
-                          <User className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                          <div className="font-medium">{player.name}</div>
-                          <div className="text-xs text-muted-foreground">#{player.number}</div>
-                        </div>
-                      </button>
-                    ))
-                  )}
-                </div>
-                <button
-                  onClick={() => setShowPlayerModal(false)}
-                  className="w-full min-h-[44px] py-2 glass rounded-lg"
-                >
-                  Cancel
-                </button>
-              </div>
-            </FullScreenOverlay>
+            </div>
           </>
         )}
+
+        {!selectedMatch && activeMatches.length === 0 && (
+          <div className="glass rounded-xl p-8 text-center border border-white/20 backdrop-blur-xl">
+            <div className="flex-shrink-0">
+              <svg className="h-10 w-10 text-muted-foreground" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="mt-4">
+              <h3 className="text-lg font-medium text-muted-foreground">No matches available</h3>
+              <p className="text-sm text-muted-foreground mt-2">
+                No scheduled or live matches found. Please create matches in the Matches section first.
+              </p>
+            </div>
+          </div>
+        )}
+
+        <FullScreenOverlay
+          isOpen={showPlayerModal}
+          onClose={() => setShowPlayerModal(false)}
+        >
+          <div className="space-y-4">
+            <h2 className="text-xl font-bold capitalize">Select Player for {pendingAction?.type}</h2>
+            <div className="max-h-[60vh] overflow-y-auto">
+               {players.length === 0 ? (
+                 <p className="text-sm text-muted-foreground py-4">No players found for this team.</p>
+               ) : (
+                 players.map(player => (
+                  <button
+                    key={player.id}
+                    onClick={() => logAction(player)}
+                    className="flex items-center gap-3 p-3 glass rounded-xl hover:bg-white/10 transition-colors text-left border border-white/20"
+                  >
+                    <div className="w-10 h-10 rounded-full bg-primary/20 flex items-center justify-center">
+                      <User className="w-5 h-5 text-primary" />
+                    </div>
+                    <div>
+                      <div className="font-medium">{player.name}</div>
+                      <div className="text-xs text-muted-foreground">#{player.number}</div>
+                    </div>
+                  </button>
+                ))
+              )}
+              <button
+                onClick={() => setShowPlayerModal(false)}
+                className="w-full min-h-[44px] py-2 glass rounded-lg border border-white/20"
+              >
+                Cancel
+              </button>
+            </div>
+          </div>
+        </FullScreenOverlay>
       </div>
     </AdminLayout>
   );

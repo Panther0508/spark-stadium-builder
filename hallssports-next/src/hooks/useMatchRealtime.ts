@@ -107,7 +107,7 @@ export function useMatchRealtime(
         }, 10000);
       }
     }, 5000);
-  }, [matchId, clearAllTimers]);
+  }, [matchId, clearAllTimers, onGoal]);
 
   const poll = useCallback(async () => {
     if (!matchId) return;

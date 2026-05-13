@@ -1,17 +1,15 @@
 {
+  "id": "https://hallssports-futo.vercel.app",
   "name": "HallsSports",
   "short_name": "HallsSports",
   "description": "Live Football, Proudly Futoite – real-time stats for FUTO hostel competitions.",
   "start_url": "/",
+  "scope": "/",
   "display": "standalone",
   "background_color": "#0F0F0F",
   "theme_color": "#00A859",
+  "orientation": "portrait-primary",
   "icons": [
-    {
-      "src": "/favicon.png",
-      "sizes": "any",
-      "type": "image/png"
-    },
     {
       "src": "/icons/icon-192x192.png",
       "sizes": "192x192",

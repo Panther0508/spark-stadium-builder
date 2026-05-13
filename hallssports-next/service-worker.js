@@ -1,19 +1,19 @@
-/* eslint-disable no-restricted-globals */
+ 
 
 // Custom Service Worker for HallsSports
 // Includes push notification handling and Workbox precaching
 
 // Important for next-pwa: Injects the precache manifest
-// @ts-ignore
+// @ts-expect-error workbox types not available
 if (typeof importScripts === 'function') {
-  // eslint-disable-next-line no-undef
-  // @ts-ignore
+    
+  // @ts-expect-error workbox CDN script
   importScripts('https://storage.googleapis.com/workbox-cdn/releases/6.4.1/workbox-sw.js');
 }
 
-// @ts-ignore
+// @ts-expect-error workbox may not be defined
 if (self.workbox) {
-  // @ts-ignore
+  // @ts-expect-error workbox precaching manifest
   self.workbox.precaching.precacheAndRoute(self.__WB_MANIFEST || []);
 }
 

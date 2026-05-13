@@ -19,6 +19,7 @@ const staticRoutes = [
   "/settings",
   "/terms",
   "/privacy",
+  "/more",
 ];
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
@@ -26,57 +27,46 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
 
   // Static routes
   staticRoutes.forEach((route) => {
-    const priority = route === "" ? 1.0 : route === "/matches" ? 0.9 : 0.8;
-    const changeFreq: "hourly" | "daily" | "weekly" | "monthly" =
-      route === "" || route === "/matches" ? "hourly" : "weekly";
-    
     sitemapEntries.push({
       url: `${SITE_URL}${route}`,
       lastModified: new Date(),
-      changeFrequency: changeFreq,
-      priority,
+      changeFrequency: route === "" || route === "/matches" ? "hourly" : "weekly",
+      priority: route === "" ? 1.0 : route === "/matches" ? 0.9 : 0.8,
     });
   });
 
-  // Dynamic routes - matches and players from Supabase
+  // Dynamic routes
   try {
     if (supabase) {
-      // Fetch matches
-      const { data: matches } = await supabase
-        .from("matches")
-        .select("id,updated_at")
-        .eq("is_verified", true);
-      
-      if (matches && matches.length > 0) {
-        matches.forEach((match: { id: string; updated_at: string | null }) => {
+      const [matchesResult, playersResult] = await Promise.all([
+        supabase.from("matches").select("id, match_date").eq("is_verified", true),
+        supabase.from("players").select("id, created_at").eq("is_verified", true),
+      ]);
+
+      if (matchesResult.data) {
+        matchesResult.data.forEach((match) => {
           sitemapEntries.push({
             url: `${SITE_URL}/match/${match.id}`,
-            lastModified: match.updated_at ? new Date(match.updated_at) : new Date(),
+            lastModified: new Date(match.match_date),
             changeFrequency: "hourly",
-            priority: 0.85,
+            priority: 0.8,
           });
         });
       }
 
-      // Fetch players
-      const { data: players } = await supabase
-        .from("players")
-        .select("id,updated_at")
-        .eq("is_verified", true);
-      
-      if (players && players.length > 0) {
-        players.forEach((player: { id: string; updated_at: string | null }) => {
+      if (playersResult.data) {
+        playersResult.data.forEach((player) => {
           sitemapEntries.push({
             url: `${SITE_URL}/players/${player.id}`,
-            lastModified: player.updated_at ? new Date(player.updated_at) : new Date(),
+            lastModified: new Date(player.created_at),
             changeFrequency: "weekly",
-            priority: 0.7,
+            priority: 0.6,
           });
         });
       }
     }
   } catch (error) {
-    console.error("Error fetching dynamic routes for sitemap:", error);
+    console.error("Sitemap dynamic fetch error:", error);
   }
 
   return sitemapEntries;

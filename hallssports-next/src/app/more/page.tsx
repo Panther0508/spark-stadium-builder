@@ -2,20 +2,14 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { PageShell } from "@/components/PageShell";
 import { BackButton } from "@/components/BackButton";
 import { 
   ExternalLink, 
-  Shield, 
-  FileText, 
-  HelpCircle, 
-  Bell, 
   Moon, 
   Sun, 
-  Globe, 
   Trophy,
   Users,
   Medal,
@@ -25,8 +19,7 @@ import {
   Download,
   Settings,
   Gift,
-  MessageSquare,
-  ArrowLeft
+  MessageSquare
 } from "lucide-react";
 import { FeedbackModal } from "@/components/FeedbackModal";
 import { useTheme } from "@/contexts/ThemeContext";
@@ -44,7 +37,6 @@ const MENU_ITEMS = [
 ];
 
 export default function MorePage() {
-  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [showFeedbackModal, setShowFeedbackModal] = useState(false);
 
@@ -54,16 +46,9 @@ export default function MorePage() {
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        className="space-y-4 pb-20"
+        className="space-y-4 pb-20 overflow-y-auto max-h-[calc(100vh-80px)] overscroll-contain"
       >
-        <div className="flex items-center gap-4 mb-4">
-          <button
-            onClick={() => router.back()}
-            className="p-2 rounded-lg glass hover:bg-white/20 min-h-[44px] min-w-[44px] flex items-center justify-center"
-            aria-label="Go back"
-          >
-            <ArrowLeft className="h-5 w-5" />
-          </button>
+        <div className="flex items-center gap-4 mb-4 pt-16">
           <h1 className="text-2xl font-bold">More Options</h1>
         </div>
 

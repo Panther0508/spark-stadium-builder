@@ -1,229 +1,187 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { motion } from "framer-motion";
-import { AdminLayout } from "@/components/admin/AdminLayout";
-import { AdminCard } from "@/components/admin/AdminCard";
-import { Skeleton } from "@/components/Skeleton";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
-import { GlassModal } from "@/components/GlassModal";
-import { toast } from "sonner";
-import { adminCount, adminUpdate, adminSelect } from "@/app/admin/actions";
-import { Shield, CheckCircle, Clock, AlertTriangle, FileText, ChevronRight } from "lucide-react";
-import { formatDistanceToNow } from "date-fns";
-import Link from "next/link";
+import { useState, useEffect } from "react";
+import { useToast } from "@/components/ToastProvider";
 
-export default function VerifierDashboardPage() {
-  const { loading: authLoading } = useAdminAuth("verifier");
-  const [showConfirmModal, setShowConfirmModal] = useState(false);
-  const [stats, setStats] = useState({
+type Stats = {
+  unverifiedItems: number;
+  pendingMatches: number;
+  pendingEvents: number;
+  approvedToday: number;
+};
+
+type RecentActivity = {
+  id: string;
+  type: string;
+  summary: string;
+  timestamp: string;
+};
+
+export default function VerifierDashboard() {
+  const [stats, setStats] = useState<Stats>({
     unverifiedItems: 0,
-    approvedToday: 0,
     pendingMatches: 0,
     pendingEvents: 0,
+    approvedToday: 0,
   });
-  const [recentLogs, setRecentLogs] = useState<any[]>([]);
-  const [loadingData, setLoadingData] = useState(true);
-
-  useEffect(() => {
-    const fetchStats = async () => {
-      try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-
-        const [matchesRes, eventsRes, playersRes, announcementsRes, highlightsRes, logsRes] = await Promise.all([
-          adminCount('matches', { is_verified: false }),
-          adminCount('match_events', { is_verified: false }),
-          adminCount('players', { is_verified: false }),
-          adminCount('announcements', { is_verified: false }),
-          adminCount('highlights', { is_verified: false }),
-          adminSelect('admin_logs', {}, { order: { field: 'created_at', ascending: false } }) as Promise<any[]>,
-        ]);
-
-        const totalUnverified = (matchesRes || 0) + (eventsRes || 0) + (playersRes || 0) + (announcementsRes || 0) + (highlightsRes || 0);
-        
-        const approvedToday = (logsRes || []).filter(log => 
-          log.action === 'verify' && new Date(log.created_at) >= today
-        ).length;
-
-        setStats({
-          unverifiedItems: totalUnverified,
-          approvedToday,
-          pendingMatches: matchesRes || 0,
-          pendingEvents: eventsRes || 0,
-        });
-
-        setRecentLogs((logsRes || []).slice(0, 5));
-      } catch (error) {
-        console.error("Error fetching stats:", error);
-      } finally {
-        setLoadingData(false);
-      }
-    };
-    if (!authLoading) fetchStats();
-  }, [authLoading]);
+  const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
 
   const handlePublishAll = async () => {
-    try {
-      await Promise.all([
-        adminUpdate('matches', { is_verified: false }, { is_verified: true }),
-        adminUpdate('match_events', { is_verified: false }, { is_verified: true }),
-        adminUpdate('players', { is_verified: false }, { is_verified: true }),
-        adminUpdate('announcements', { is_verified: false }, { is_verified: true }),
-        adminUpdate('highlights', { is_verified: false }, { is_verified: true }),
-      ]);
-      toast.success("All items published successfully!");
-      setStats(prev => ({ ...prev, unverifiedItems: 0, pendingMatches: 0, pendingEvents: 0 }));
-     } catch (err) {
-       console.error("Publish error:", err);
-       toast.error("Failed to publish items");
-     } finally {
-      setShowConfirmModal(false);
-    }
+    addToast({ type: "info", title: "Publish all not implemented yet" });
   };
 
-  if (authLoading) {
+ useEffect(() => {
+    const handleFetch = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch("/api/admin/dashboard/stats", {
+          method: "GET",
+        });
+        if (!res.ok) throw new Error("Failed to fetch stats");
+        const data: Stats = await res.json();
+        setStats(data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        addToast({ type: "error", title: message });
+      } finally {
+        setLoading(false);
+      }
+    };
+    handleFetch();
+
+    const fetchRecent = async () => {
+      try {
+        const res = await fetch("/api/admin/dashboard/recent", {
+          method: "GET",
+        });
+        if (!res.ok) throw new Error("Failed to fetch recent activity");
+        const data: RecentActivity[] = await res.json();
+        setRecentActivity(data);
+      } catch (err) {
+        console.warn("Failed to fetch recent activity", err);
+      }
+    };
+    fetchRecent();
+  }, [addToast]);
+
+  if (loading) {
     return (
-      <div className="p-8">
-        <Skeleton className="h-64 w-full" />
+      <div className="space-y-6">
+        <div className="grid grid-cols-1 gap-4">
+          {[...Array(4)].map((_, i) => (
+            <div key={i} className="glass rounded-xl p-6 border border-white/10">
+              <h3 className="text-lg font-medium text-muted-foreground">Loading...</h3>
+              <p className="text-2xl font-bold mt-2">--</p>
+            </div>
+          ))}
+        </div>
+        <div className="space-y-4">
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="glass rounded-xl p-4 border border-white/10">
+              <div className="flex items-start gap-3">
+                <div className="flex-shrink-0 h-8 w-8 rounded bg-white/20"></div>
+                <div>
+                  <h4 className="text-sm font-medium text-muted-foreground">Activity Item</h4>
+                  <p className="text-xs text-muted-foreground mt-1">Just now</p>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error loading dashboard</h3>
+              <div className="mt-2 text-sm text-red-700">{error}</div>
+              <button
+                onClick={() => {
+                  setLoading(true);
+                  setError(null);
+                  fetch("/api/admin/dashboard/stats").then(res => res.ok ? res.json() : Promise.reject()).then(setStats).catch(() => {}).finally(() => setLoading(false));
+                }}
+                className="mt-3 px-3 py-1.5 text-sm font-medium bg-red-100 text-red-800 rounded-lg hover:bg-red-200"
+              >
+                Retry
+              </button>
+            </div>
+          </div>
+        </div>
       </div>
     );
   }
 
   return (
-    <AdminLayout role="verifier">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-        <div className="flex items-center gap-3">
-          <Shield className="w-8 h-8 text-primary" />
-          <h1 className="text-2xl font-bold">Content Verifier Dashboard</h1>
-        </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Verifier Dashboard</h1>
+        <button
+          onClick={handlePublishAll}
+          className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
+        >
+          Publish All
+        </button>
+      </div>
 
-        {/* Stats Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <AdminCard className="p-4 text-center border-t-4 border-t-yellow-500">
-            <div className="text-2xl font-bold text-yellow-500">{loadingData ? "—" : stats.unverifiedItems}</div>
-            <div className="text-sm text-muted-foreground">Unverified Items</div>
-          </AdminCard>
-          <AdminCard className="p-4 text-center border-t-4 border-t-green-500">
-            <div className="text-2xl font-bold text-green-500">{loadingData ? "—" : stats.approvedToday}</div>
-            <div className="text-sm text-muted-foreground">Approved Today</div>
-          </AdminCard>
-          <AdminCard className="p-4 text-center border-t-4 border-t-primary">
-            <div className="text-2xl font-bold">{loadingData ? "—" : stats.pendingMatches}</div>
-            <div className="text-sm text-muted-foreground">Pending Matches</div>
-          </AdminCard>
-          <AdminCard className="p-4 text-center border-t-4 border-t-blue-500">
-            <div className="text-2xl font-bold">{loadingData ? "—" : stats.pendingEvents}</div>
-            <div className="text-sm text-muted-foreground">Pending Events</div>
-          </AdminCard>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="glass rounded-xl p-6 border border-white/10">
+          <h3 className="text-lg font-medium text-muted-foreground">Unverified Items</h3>
+          <p className="text-3xl font-bold mt-2">{stats.unverifiedItems}</p>
         </div>
+        <div className="glass rounded-xl p-6 border border-white/10">
+          <h3 className="text-lg font-medium text-muted-foreground">Pending Matches</h3>
+          <p className="text-3xl font-bold mt-2">{stats.pendingMatches}</p>
+        </div>
+        <div className="glass rounded-xl p-6 border border-white/10">
+          <h3 className="text-lg font-medium text-muted-foreground">Pending Events</h3>
+          <p className="text-3xl font-bold mt-2">{stats.pendingEvents}</p>
+        </div>
+        <div className="glass rounded-xl p-6 border border-white/10">
+          <h3 className="text-lg font-medium text-muted-foreground">Approved Today</h3>
+          <p className="text-3xl font-bold mt-2">{stats.approvedToday}</p>
+        </div>
+      </div>
 
-        {/* Action Center */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 space-y-6">
-            <AdminCard highlighted>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <AlertTriangle className="w-10 h-10 text-primary animate-pulse" />
-                  <div>
-                    <h3 className="font-bold text-lg">Verification Queue</h3>
-                    <p className="text-sm text-muted-foreground">There are {stats.unverifiedItems} items waiting for your approval.</p>
-                  </div>
+      <div className="space-y-4">
+        <h2 className="text-xl font-bold">Recent Activity</h2>
+        {recentActivity.length === 0 ? (
+          <p className="text-muted-foreground">No recent activity</p>
+        ) : (
+          <div className="space-y-3">
+            {recentActivity.map(activity => (
+              <div key={activity.id} className="glass rounded-xl p-4 border border-white/10 flex items-start gap-3">
+                <div className="flex-shrink-0 h-8 w-8">
+                  <svg className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
+                    <path d="M10 0a10 10 0 100 20 10 10 0 000-20z" />
+                  </svg>
                 </div>
-                <div className="flex gap-2">
-                  <Link href="/admin/verifier/queue" className="px-4 py-2 glass rounded-lg text-sm font-bold hover:bg-white/10 transition-all">
-                    Open Queue
-                  </Link>
-                  <button
-                    onClick={() => setShowConfirmModal(true)}
-                    disabled={stats.unverifiedItems === 0}
-                    className="px-4 py-2 bg-primary text-white font-bold rounded-lg hover:opacity-90 transition-all disabled:opacity-50"
-                  >
-                    Approve All
-                  </button>
+                <div>
+                  <h4 className="text-sm font-medium">{activity.summary}</h4>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {new Date(activity.timestamp).toLocaleString()}
+                  </p>
                 </div>
               </div>
-            </AdminCard>
-
-            <AdminCard>
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-bold text-lg flex items-center gap-2">
-                  <Clock className="w-5 h-5 text-primary" />
-                  Recent Verification Activity
-                </h3>
-                <Link href="/admin/verifier/logs" className="text-xs text-primary hover:underline flex items-center gap-1">
-                  View All Logs <ChevronRight className="w-3 h-3" />
-                </Link>
-              </div>
-              <div className="space-y-4">
-                {recentLogs.length === 0 ? (
-                  <p className="text-sm text-muted-foreground py-4 text-center">No recent activity</p>
-                ) : (
-                  recentLogs.map((log) => (
-                    <div key={log.id} className="flex items-start gap-4 p-3 glass rounded-xl border border-white/5">
-                      <div className="p-2 bg-primary/10 rounded-lg">
-                        <CheckCircle className="w-4 h-4 text-primary" />
-                      </div>
-                      <div className="flex-1">
-                        <div className="flex justify-between items-start">
-                          <p className="font-bold text-sm capitalize">{log.action} {log.table_name.replace('_', ' ')}</p>
-                          <span className="text-[10px] text-muted-foreground">
-                            {formatDistanceToNow(new Date(log.created_at), { addSuffix: true })}
-                          </span>
-                        </div>
-                        <p className="text-xs text-muted-foreground truncate max-w-[200px] md:max-w-full">
-                          Record: {log.record_id}
-                        </p>
-                      </div>
-                    </div>
-                  ))
-                )}
-              </div>
-            </AdminCard>
+            ))}
           </div>
-
-          <div className="space-y-6">
-            <AdminCard className="p-6 h-full">
-              <h3 className="font-bold text-lg mb-4 flex items-center gap-2">
-                <Shield className="w-5 h-5 text-primary" />
-                Verifier Tools
-              </h3>
-              <div className="space-y-3">
-                <Link href="/admin/verifier/override" className="flex items-center justify-between p-4 glass rounded-xl hover:bg-white/10 transition-all group">
-                   <div className="flex items-center gap-3">
-                     <FileText className="w-5 h-5 text-primary" />
-                     <span className="text-sm font-medium">Manual Override</span>
-                   </div>
-                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                </Link>
-                <Link href="/admin/verifier/logs" className="flex items-center justify-between p-4 glass rounded-xl hover:bg-white/10 transition-all group">
-                   <div className="flex items-center gap-3">
-                     <Clock className="w-5 h-5 text-primary" />
-                     <span className="text-sm font-medium">Audit Logs</span>
-                   </div>
-                   <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
-                </Link>
-              </div>
-            </AdminCard>
-          </div>
-        </div>
-      </motion.div>
-
-      <GlassModal open={showConfirmModal} onClose={() => setShowConfirmModal(false)} title="Bulk Approval">
-        <div className="space-y-4">
-          <p className="text-sm text-muted-foreground">
-            Are you sure you want to verify all {stats.unverifiedItems} pending items? This will publish everything to the public app immediately.
-          </p>
-          <div className="flex gap-3 justify-end">
-            <button onClick={() => setShowConfirmModal(false)} className="px-4 py-2 glass rounded-lg hover:bg-white/20 text-sm font-bold">
-              Cancel
-            </button>
-            <button onClick={handlePublishAll} className="px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-all">
-              Confirm & Publish
-            </button>
-          </div>
-        </div>
-      </GlassModal>
-    </AdminLayout>
+        )}
+      </div>
+    </div>
   );
 }

@@ -1,12 +1,9 @@
-import Link from "next/link";
 import { getMatchById, getMatchEvents } from "@/lib/queries";
 import type { Metadata } from "next";
 import MatchLiveClient from "./MatchLiveClient";
 import { PageShell } from "@/components/PageShell";
 import { GlassCard } from "@/components/GlassCard";
-import { ArrowLeft } from "lucide-react";
-
-const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+import { BackButton } from "@/components/BackButton";
 
 export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
   const match = await getMatchById(params.id);
@@ -26,11 +23,11 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
     openGraph: {
       title,
       description,
-      url: `${SITE_URL}/match/${match.id}`,
-      images: match.image_url ? [{ url: match.image_url }] : undefined,
+      url: `/match/${match.id}`,
+      images: [{ url: match.image_url || "/og-image.png" }],
     },
     alternates: {
-      canonical: `${SITE_URL}/match/${match.id}`,
+      canonical: `/match/${match.id}`,
     },
   };
 }
@@ -44,9 +41,7 @@ export default async function MatchDetailPage({ params }: { params: { id: string
   if (!match) {
     return (
       <PageShell>
-        <Link href="/matches" className="inline-flex items-center gap-1 text-sm text-muted-foreground mb-3">
-          <ArrowLeft className="h-4 w-4" /> All matches
-        </Link>
+        <BackButton />
         <GlassCard className="p-6 text-center">
           <p className="text-red-400 mb-2">Match not found</p>
           <button onClick={() => window.location.reload()} className="text-primary underline">Retry</button>
@@ -62,7 +57,8 @@ export default async function MatchDetailPage({ params }: { params: { id: string
     "startDate": match.match_date,
     "location": {
       "@type": "Place",
-      "name": match.venue || "Tournament Grounds"
+      "name": match.venue || "Tournament Grounds",
+      "address": "FUTO, Owerri"
     },
     "homeTeam": {
       "@type": "SportsTeam",
@@ -74,11 +70,13 @@ export default async function MatchDetailPage({ params }: { params: { id: string
     }
   };
 
+  const jsonLdString = JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+
   return (
     <>
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: jsonLdString }}
       />
       <MatchLiveClient initialMatch={match} initialEvents={events} />
     </>

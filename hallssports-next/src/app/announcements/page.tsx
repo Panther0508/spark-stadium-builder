@@ -1,77 +1,73 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import Image from "next/image";
-import { motion, AnimatePresence } from "framer-motion";
+import { useEffect, useState, useCallback } from "react";
 import { GlassCard } from "@/components/GlassCard";
 import { ShimmerLoader } from "@/components/ShimmerLoader";
 import { PageShell } from "@/components/PageShell";
 import { BackButton } from "@/components/BackButton";
-import { Bell, Calendar, User } from "lucide-react";
-import { sanitizeHtml } from "@/lib/sanitize";
+import { Megaphone, Calendar } from "lucide-react";
+import { ErrorState } from "@/components/ErrorState";
+import { EmptyState } from "@/components/EmptyState";
+import { FullScreenOverlay } from "@/components/FullScreenOverlay";
+import { supabase } from "@/lib/supabase";
+import { formatRelativeTime } from "@/lib/utils";
 
-type RawAnnouncement = {
+interface Announcement {
   id: string;
   title: string;
   body: string;
-  image_url?: string;
-  category?: string;
-  author?: string;
+  image_url: string | null;
   created_at: string;
-};
-
-type Announcement = {
-  id: string;
-  title: string;
-  date: string;
-  excerpt: string;
-  content: string;
-  author: string;
-  image: string;
-  category: string;
-};
+}
 
 export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedAnnouncement, setSelectedAnnouncement] = useState<Announcement | null>(null);
-  const [showDetail, setShowDetail] = useState(false);
+  const [selected, setSelected] = useState<Announcement | null>(null);
+
+const fetchAnnouncements = useCallback(async () => {
+     setLoading(true);
+     setError(null);
+     try {
+       const { data, error } = await supabase
+         .from('announcements')
+         .select('*')
+         .eq('is_verified', true)
+         .order('created_at', { ascending: false });
+       if (error) throw error;
+       setAnnouncements(data as Announcement[] || []);
+     } catch (e) {
+       setError(e instanceof Error ? e.message : "Failed to load announcements");
+     } finally {
+       setLoading(false);
+     }
+   }, []);
 
   useEffect(() => {
-    const fetchAnnouncements = async () => {
-      try {
-        const res = await fetch("/api/announcements");
-        if (!res.ok) throw new Error("Failed to load announcements");
-        const data: RawAnnouncement[] = await res.json();
-        // Transform to UI format
-        const transformed = data.map(a => ({
-          id: a.id,
-          title: a.title,
-          date: a.created_at,
-          excerpt: a.body.substring(0, 120) + (a.body.length > 120 ? '...' : ''),
-          content: a.body,
-          author: a.author || "Tournament Committee",
-          image: a.image_url || "/images/announcements/default.jpg",
-          category: a.category || "News",
-        }));
-        setAnnouncements(transformed);
-      } catch (e) {
-        setError(e instanceof Error ? e.message : "Failed to load announcements");
-      } finally {
-        setLoading(false);
-      }
+    const handleFetch = async () => {
+      await fetchAnnouncements();
     };
-    fetchAnnouncements();
-  }, []);
+    handleFetch();
+
+    const channel = supabase
+      .channel('announcements')
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'announcements' }, (payload) => {
+        if (payload.new.is_verified) {
+          setAnnouncements(prev => [payload.new as Announcement, ...prev]);
+        }
+      })
+      .subscribe();
+
+    return () => { supabase.removeChannel(channel); };
+  }, [fetchAnnouncements]);
 
   if (loading) {
     return (
       <PageShell title="Announcements">
+        <BackButton />
         <div className="space-y-4">
-          {[...Array(5)].map((_, i) => (
-            <ShimmerLoader key={i} height={120} width="100%" />
-          ))}
+          {[...Array(4)].map((_, i) => <ShimmerLoader key={i} height={120} width="100%" />)}
         </div>
       </PageShell>
     );
@@ -80,10 +76,8 @@ export default function AnnouncementsPage() {
   if (error) {
     return (
       <PageShell title="Announcements">
-        <GlassCard className="p-6 text-center">
-          <p className="text-red-400 mb-2">Error: {error}</p>
-          <button onClick={() => window.location.reload()} className="text-primary underline">Retry</button>
-        </GlassCard>
+        <BackButton />
+        <ErrorState message={error} onRetry={fetchAnnouncements} />
       </PageShell>
     );
   }
@@ -91,10 +85,11 @@ export default function AnnouncementsPage() {
   if (announcements.length === 0) {
     return (
       <PageShell title="Announcements">
-        <GlassCard className="p-8 text-center">
-          <Bell className="h-12 w-12 text-primary/30 mx-auto mb-2" />
-          <p className="text-muted-foreground">No announcements yet.</p>
-        </GlassCard>
+        <BackButton />
+        <EmptyState 
+          icon={<Megaphone className="h-12 w-12 text-primary" />} 
+          title="No announcements yet." 
+        />
       </PageShell>
     );
   }
@@ -102,107 +97,33 @@ export default function AnnouncementsPage() {
   return (
     <PageShell title="Announcements">
       <BackButton />
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="space-y-4"
-      >
-        {announcements.map((announcement, index) => (
-          <motion.div
-            key={announcement.id}
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: index * 0.1 }}
-          >
-            <GlassCard className="p-4 tilt">
-              <div className="flex gap-4">
-                <div className="relative w-20 h-20 rounded-lg overflow-hidden flex-shrink-0">
-                  <Image
-                    src={announcement.image}
-                    alt={announcement.title}
-                    fill
-                    className="object-cover"
-                  />
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center gap-2 mb-1">
-                    <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded">
-                      {announcement.category}
-                    </span>
-                    <Calendar className="h-3 w-3 text-muted-foreground" />
-                    <span className="text-xs text-muted-foreground">
-                      {new Date(announcement.date).toLocaleDateString()}
-                    </span>
+      <div className="space-y-4">
+        {announcements.map((item) => (
+          <GlassCard key={item.id} className="p-4 cursor-pointer hover:border-primary/30 transition-all" onClick={() => setSelected(item)}>
+            <div className="flex gap-4">
+               {item.image_url && <div className="w-16 h-16 rounded-lg bg-cover bg-center shrink-0" style={{ backgroundImage: `url(${item.image_url})` }} />}
+               <div className="min-w-0">
+                  <h3 className="font-bold text-lg truncate">{item.title}</h3>
+                  <p className="text-sm text-muted-foreground line-clamp-2">{item.body}</p>
+                  <div className="flex items-center gap-1 text-[10px] text-primary mt-2">
+                    <Calendar className="h-3 w-3" />
+                    {formatRelativeTime(item.created_at)}
                   </div>
-                  <h3 className="font-bold mb-1">{announcement.title}</h3>
-                  <p className="text-sm text-muted-foreground line-clamp-2">
-                    {announcement.excerpt}
-                  </p>
-                  <button
-                    onClick={() => {
-                      setSelectedAnnouncement(announcement);
-                      setShowDetail(true);
-                    }}
-                    className="mt-2 text-primary text-sm hover:underline"
-                  >
-                    Read more
-                  </button>
-                </div>
-              </div>
-            </GlassCard>
-          </motion.div>
+               </div>
+            </div>
+          </GlassCard>
         ))}
-      </motion.div>
+      </div>
 
-      {/* Detail Modal */}
-      <AnimatePresence>
-        {showDetail && selectedAnnouncement && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
-            onClick={() => setShowDetail(false)}
-          >
-            <motion.div
-              initial={{ scale: 0.9, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.9, opacity: 0 }}
-              className="glass rounded-2xl p-6 max-w-lg w-full max-h-[80vh] overflow-y-auto"
-              onClick={e => e.stopPropagation()}
-            >
-              <div className="relative h-48 rounded-lg overflow-hidden mb-4">
-                <Image
-                  src={selectedAnnouncement.image}
-                  alt={selectedAnnouncement.title}
-                  fill
-                  className="object-cover"
-                />
-              </div>
-              <div className="flex items-center gap-2 mb-3">
-                <span className="px-2 py-0.5 bg-primary/20 text-primary text-xs rounded">
-                  {selectedAnnouncement.category}
-                </span>
-                <span className="text-xs text-muted-foreground flex items-center gap-1">
-                  <User className="h-3 w-3" />
-                  {selectedAnnouncement.author}
-                </span>
-              </div>
-              <h2 className="font-bold text-xl mb-2">{selectedAnnouncement.title}</h2>
-               <p className="text-sm text-muted-foreground mb-2">
-                 {new Date(selectedAnnouncement.date).toLocaleDateString()}
-               </p>
-               <p className="text-sm">{sanitizeHtml(selectedAnnouncement.content)}</p>
-              <button
-                onClick={() => setShowDetail(false)}
-                className="mt-4 px-4 py-2 bg-primary text-white rounded-lg"
-              >
-                Close
-              </button>
-            </motion.div>
-          </motion.div>
+      <FullScreenOverlay isOpen={!!selected} onClose={() => setSelected(null)}>
+        {selected && (
+          <div className="space-y-4">
+            {selected.image_url && <img src={selected.image_url} alt={selected.title} className="w-full h-64 object-cover rounded-2xl" /* eslint-disable-line @next/next/no-img-element */ />}
+            <h2 className="text-2xl font-black">{selected.title}</h2>
+            <p className="text-muted-foreground whitespace-pre-line leading-relaxed">{selected.body}</p>
+          </div>
         )}
-      </AnimatePresence>
+      </FullScreenOverlay>
     </PageShell>
   );
 }

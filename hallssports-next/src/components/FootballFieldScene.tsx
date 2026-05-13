@@ -1,14 +1,10 @@
 "use client";
 
-import { Canvas, useFrame, useThree } from "@react-three/fiber";
-import { Fog } from "three";
-import { useMemo, useRef, useState, useEffect, Suspense, useCallback } from "react";
+import React, { Suspense, useMemo, useRef, useState, useEffect } from "react";
+import { Canvas, useFrame } from "@react-three/fiber";
 import * as THREE from "three";
-import { useTheme } from "@/contexts/ThemeContext";
 import { cn } from "@/lib/utils";
-
-// Default theme fallback for when ThemeProvider is not available
-const DEFAULT_THEME = "dark";
+import { useTheme } from "@/contexts/ThemeContext";
 
 function Pitch() {
   const { theme } = useTheme();
@@ -163,6 +159,7 @@ function Scene() {
 
   return (
     <>
+      <color attach="background" args={[isDark ? "#020806" : "#ffffff"]} />
       <fog attach="fog" args={[isDark ? "#001a0d" : "#f0f0f0", 30, 70]} />
       <ambientLight intensity={isDark ? 0.5 : 0.8} />
       <directionalLight position={[20, 30, 10]} intensity={isDark ? 1.2 : 1.5} castShadow />
@@ -214,7 +211,6 @@ export function FootballFieldScene() {
       >
         <Suspense fallback={null}>
           <Scene />
-          <SceneUpdate />
         </Suspense>
       </Canvas>
       {/* dark overlay for legibility */}
@@ -226,17 +222,4 @@ export function FootballFieldScene() {
       )} />
     </div>
   );
-}
-
-function SceneUpdate() {
-  const { theme } = useTheme();
-  const isDark = theme === "dark";
-  const { scene } = useThree();
-
-  useEffect(() => {
-    scene.fog = new Fog(isDark ? "#001a0d" : "#f0f0f0", 30, 70);
-    scene.background = new THREE.Color(isDark ? "#020806" : "#ffffff");
-  }, [isDark, scene]);
-
-  return null;
 }

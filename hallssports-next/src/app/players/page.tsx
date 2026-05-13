@@ -78,6 +78,7 @@ export default function PlayersPage() {
   if (loading) {
     return (
       <PageShell title="Players">
+        <BackButton />
         <ShimmerLoader height={400} width="100%" />
       </PageShell>
     );
@@ -86,6 +87,7 @@ export default function PlayersPage() {
   if (error) {
     return (
       <PageShell title="Players">
+        <BackButton />
         <GlassCard className="p-6 text-center">
           <p className="text-red-400 mb-2">Error: {error}</p>
           <button onClick={() => window.location.reload()} className="text-primary underline">

@@ -11,11 +11,12 @@ interface CloudinaryUploadProps {
 }
 
 export function CloudinaryUpload({ onSuccess, value, className }: CloudinaryUploadProps) {
-  const widgetRef = useRef<any>(null);
+  const widgetRef = useRef<{ open: () => void } | null>(null);
 
   useEffect(() => {
-    if (typeof window !== "undefined" && (window as any).cloudinary) {
-      widgetRef.current = (window as any).cloudinary.createUploadWidget(
+    const win = window as unknown as { cloudinary: { createUploadWidget: (config: object, callback: (error: Error | null, result: { event: string; info: { secure_url: string } }) => void) => { open: () => void } } };
+    if (typeof window !== "undefined" && win.cloudinary) {
+      widgetRef.current = win.cloudinary.createUploadWidget(
         {
           cloudName: process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME,
           uploadPreset: process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET,
@@ -23,7 +24,7 @@ export function CloudinaryUpload({ onSuccess, value, className }: CloudinaryUplo
           multiple: false,
           theme: "minimal",
         },
-        (error: any, result: any) => {
+        (error, result) => {
           if (!error && result && result.event === "success") {
             onSuccess(result.info.secure_url);
           }
@@ -42,11 +43,11 @@ export function CloudinaryUpload({ onSuccess, value, className }: CloudinaryUplo
       <div className="aspect-video bg-black/20 rounded-lg overflow-hidden flex items-center justify-center border border-white/10 relative group">
         {value ? (
           <>
-            <img
-              src={value}
-              alt="Upload preview"
-              className="w-full h-full object-cover"
-            />
+<img
+                src={value}
+                alt="Upload preview"
+                className="w-full h-full object-cover"
+              />
             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
               <button
                 onClick={handleOpen}

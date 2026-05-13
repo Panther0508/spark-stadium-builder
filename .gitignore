@@ -1,12 +1,13 @@
 # Logs
 logs
 *.log
+.txt
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 pnpm-debug.log*
 
-# Dependencies
+kilocode.config.json
 node_modules
 node_modules.bak
 

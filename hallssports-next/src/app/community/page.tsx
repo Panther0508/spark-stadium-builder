@@ -1,9 +1,8 @@
 "use client";
 
-import { useEffect, useState, useRef, useMemo, Suspense, useCallback } from "react";
-import { useSearchParams } from "next/navigation";
+import { useEffect, useState, useRef, useCallback, useMemo, Suspense } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Send, MessageCircle, Shield, AlertCircle, Loader2, RefreshCw, Trophy } from "lucide-react";
+import { Send, MessageCircle, Shield, AlertCircle, Loader2, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 import { GlassCard } from "@/components/GlassCard";
 import { PageShell } from "@/components/PageShell";
@@ -12,7 +11,7 @@ import { StatusBadge, TeamLogo, type MatchStatus } from "@/components/StatusBadg
 import { BackButton } from "@/components/BackButton";
 import { formatDistanceToNow } from "date-fns";
 import { useChatRealtime } from "@/hooks/useChatRealtime";
-import type { MatchChat, Match, MatchEvent } from "@/lib/queries";
+import type { MatchChat, MatchEvent } from "@/lib/queries";
 import { FanClubGate } from "@/components/FanClubGate";
 
 const BLACKLIST = ["spam", "scam", "idiot", "stupid"];
@@ -63,12 +62,24 @@ function groupMessages(messages: MatchChat[]): MatchChat[][] {
 }
 
 function CommunityContent() {
-  const searchParams = useSearchParams();
+   const [activeMatch, setActiveMatch] = useState<{ match_id: string; match_name: string } | null>(() => {
+    if (typeof window === "undefined") return null;
+    const stored = localStorage.getItem("hallssports_active_match");
+    if (stored) {
+      try {
+        return JSON.parse(stored);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+  const [showGate, setShowGate] = useState(() => {
+    if (typeof window === "undefined") return false;
+    return !localStorage.getItem("hallssports_active_match");
+  });
   
-  const [activeMatch, setActiveMatch] = useState<{ match_id: string; match_name: string } | null>(null);
-  const [showGate, setShowGate] = useState(false);
-  
-  const [matchId, setMatchId] = useState<string | null>(null);
+  const [matchId, setMatchId] = useState<string | null>(() => activeMatch?.match_id ?? null);
   const [matchInfo, setMatchInfo] = useState<{
     id: string;
     home_team: string;
@@ -88,22 +99,6 @@ function CommunityContent() {
   const [moderationError, setModerationError] = useState<string | null>(null);
   const [celebration, setCelebration] = useState<{ active: boolean; text: string } | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
-
-  // Initial gate check
-  useEffect(() => {
-    const stored = localStorage.getItem("hallssports_active_match");
-    if (stored) {
-      try {
-        const parsed = JSON.parse(stored);
-        setActiveMatch(parsed);
-        setMatchId(parsed.match_id);
-      } catch {
-        setShowGate(true);
-      }
-    } else {
-      setShowGate(true);
-    }
-  }, []);
 
   // When matchId is set, fetch match details
   useEffect(() => {
@@ -148,20 +143,20 @@ function CommunityContent() {
     fetchMessages();
   }, [matchId]);
 
-  const handleGoal = useCallback((event: any) => {
-    setCelebration({
-      active: true,
-      text: `⚽ GOAL! ${event.player_name} scores for ${event.team}!`
-    });
-    
-    setTimeout(() => setCelebration(null), 8000);
-  }, []);
+const handleGoal = useCallback((event: MatchEvent) => {
+     setCelebration({
+       active: true,
+       text: `⚽ GOAL! ${event.player_name} scores!`
+     });
+     
+     setTimeout(() => setCelebration(null), 8000);
+   }, []);
 
-  const { messages, isPolling } = useChatRealtime(
-    matchId || "",
-    initialMessages,
-    handleGoal
-  );
+   const { messages, isPolling } = useChatRealtime(
+     matchId || "",
+     initialMessages,
+     (event: MatchEvent) => handleGoal(event)
+   );
 
   const handleGateSelect = (selection: { match_id: string; match_name: string }) => {
     setActiveMatch(selection);
@@ -238,12 +233,18 @@ function CommunityContent() {
   }, [messages]);
 
   if (showGate) {
-    return <FanClubGate onSelect={handleGateSelect} />;
+    return (
+      <>
+        <BackButton />
+        <FanClubGate onSelect={handleGateSelect} />
+      </>
+    );
   }
 
   if (loading || !matchId) {
     return (
       <PageShell title="Community">
+        <BackButton />
         <ShimmerLoader height={500} width="100%" />
       </PageShell>
     );
@@ -252,6 +253,7 @@ function CommunityContent() {
   if (error || !matchInfo) {
     return (
       <PageShell title="Community">
+        <BackButton />
         <GlassCard className="p-6 text-center">
           <p className="text-red-400 mb-2">Error: {error || "Match not found"}</p>
           <button

@@ -1,235 +1,241 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useState, useEffect } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { AdminLayout } from "@/components/admin/AdminLayout";
-import { AdminCard } from "@/components/admin/AdminCard";
-import { ShimmerLoader } from "@/components/ShimmerLoader";
-import { useAdminAuth } from "@/hooks/useAdminAuth";
-import { Shield, Trophy, Users, Video, Megaphone, Edit, RefreshCw } from "lucide-react";
-import { GlassModal } from "@/components/GlassModal";
-import { toast } from "sonner";
-import { adminSelect, adminUpdate } from "@/app/admin/actions";
+import { useToast } from "@/components/ToastProvider";
 
-type SectionType = "matches" | "players" | "highlights" | "announcements";
-
-interface EditableItem {
+type Match = {
   id: string;
-  type: SectionType;
-  title: string;
-  data: Record<string, any>;
-}
-
-const sectionConfig: Record<SectionType, { label: string; icon: React.ReactNode; table: string }> = {
-  matches: { label: "Matches", icon: <Trophy className="h-5 w-5" />, table: "matches" },
-  players: { label: "Players", icon: <Users className="h-5 w-5" />, table: "players" },
-  highlights: { label: "Highlights", icon: <Video className="h-5 w-5" />, table: "highlights" },
-  announcements: { label: "Announcements", icon: <Megaphone className="h-5 w-5" />, table: "announcements" },
+  home_team_id: string;
+  away_team_id: string;
+  home_score?: number;
+  away_score?: number;
+  status: string;
+  match_date: string;
+  venue?: string;
+  image_url?: string;
+  is_verified?: boolean;
+  community_visible?: boolean;
+  home_team?: { name: string };
+  away_team?: { name: string };
+  duration_minutes?: number; // Optional, might be stored in admin_post or a new column
 };
 
-export default function ManualOverridePage() {
-  const { loading: authLoading } = useAdminAuth("verifier");
-  const [openSections, setOpenSections] = useState<Set<SectionType>>(new Set());
-  const [items, setItems] = useState<Record<SectionType, any[]>>({
-    matches: [],
-    players: [],
-    highlights: [],
-    announcements: [],
+export default function VerifierOverride() {
+  const [matches, setMatches] = useState<Match[]>([]);
+  const [selectedMatchId, setSelectedMatchId] = useState<string | null>(null);
+  const [matchData, setMatchData] = useState<Match | null>(null);
+  const [formData, setFormData] = useState({
+    match_date: "",
+    duration_minutes: "",
+    status: "",
   });
   const [loading, setLoading] = useState(true);
-  const [selectedItem, setSelectedItem] = useState<EditableItem | null>(null);
-  const [showEditModal, setShowEditModal] = useState(false);
-  const [unverifyChecked, setUnverifyChecked] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const { addToast } = useToast();
 
-  const fetchItems = async () => {
-    setLoading(true);
+  const handleSave = async () => {
+    if (!selectedMatchId) return;
     try {
-      const [matches, players, highlights, announcements] = await Promise.all([
-        adminSelect('matches', { is_verified: true }, {
-          select: '*, home_team:home_team_id(name), away_team:away_team_id(name)',
+      const res = await fetch("/api/admin/match-update", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          matchId: selectedMatchId,
+          match_date: formData.match_date ? new Date(formData.match_date).toISOString() : undefined,
+          duration_minutes: formData.duration_minutes ? parseInt(formData.duration_minutes, 10) : undefined,
+          status: formData.status || undefined,
         }),
-        adminSelect('players', { is_verified: true }, {
-          select: '*, teams:team_id(name)',
-        }),
-        adminSelect('highlights', { is_verified: true }),
-        adminSelect('announcements', { is_verified: true }),
-      ]);
-      setItems({
-        matches: matches || [],
-        players: players || [],
-        highlights: highlights || [],
-        announcements: announcements || [],
       });
-    } catch (e) {
-      console.error("Fetch items error:", e);
-      toast.error("Failed to load verified data");
-    } finally {
-      setLoading(false);
+      if (!res.ok) throw new Error("Failed to update match");
+      addToast({ type: "success", title: "Match updated successfully" });
+      const res2 = await fetch(`/api/admin/matches`, { method: "GET" });
+      if (res2.ok) setMatches(await res2.json());
+      // Clear selection
+      setSelectedMatchId(null);
+      setMatchData(null);
+      setFormData({ match_date: "", duration_minutes: "", status: "" });
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Failed to save match";
+      setError(message);
+      addToast({ type: "error", title: message });
     }
   };
 
-  useEffect(() => {
-    if (!authLoading) fetchItems();
-  }, [authLoading]);
-
-  const toggleSection = (section: SectionType) => {
-    const newOpen = new Set(openSections);
-    if (newOpen.has(section)) newOpen.delete(section);
-    else newOpen.add(section);
-    setOpenSections(newOpen);
+  const loadMatches = async () => {
+    const res = await fetch(`/api/admin/matches`, { method: "GET" });
+    if (!res.ok) throw new Error("Failed to fetch matches");
+    return res.json();
   };
 
-  const handleSave = async (formData: FormData) => {
-    if (!selectedItem) return;
-    const updates: Record<string, any> = {};
-    formData.forEach((value, key) => {
-      updates[key] = value;
-    });
+   useEffect(() => {
+    const handleFetch = async () => {
+      setLoading(true);
+      setError(null);
+      try {
+        const res = await fetch(`/api/admin/matches`, { method: "GET" });
+        if (!res.ok) throw new Error("Failed to fetch matches");
+        const data: Match[] = await res.json();
+        setMatches(data);
+      } catch (err) {
+        const message = err instanceof Error ? err.message : "Unknown error";
+        setError(message);
+        addToast({ type: "error", title: message });
+      } finally {
+        setLoading(false);
+      }
+    };
+    handleFetch();
+  }, [addToast]);
 
-    if (unverifyChecked) {
-      updates.is_verified = false;
-    }
+useEffect(() => {
+     if (selectedMatchId) {
+       const handleFetchDetails = async () => {
+         try {
+           const res = await fetch(`/api/admin/matches/${selectedMatchId}`, {
+             method: "GET",
+           });
+           if (!res.ok) throw new Error("Failed to fetch match details");
+           const data: Match = await res.json();
+           setMatchData(data);
+           setFormData({
+             match_date: data.match_date ? new Date(data.match_date).toISOString().slice(0, 16) : "",
+             duration_minutes: data.duration_minutes ? String(data.duration_minutes) : "",
+             status: data.status || "",
+           });
+         } catch (err) {
+           const message = err instanceof Error ? err.message : "Failed to load match details";
+           setError(message);
+           addToast({ type: "error", title: message });
+         }
+       };
+       handleFetchDetails();
+     }
+   }, [selectedMatchId, addToast]);
 
-    try {
-      const table = sectionConfig[selectedItem.type].table;
-      await adminUpdate(table, { id: selectedItem.id }, updates);
-      toast.success(unverifyChecked ? "Item unverified and sent to queue" : "Item updated successfully");
-      setShowEditModal(false);
-      fetchItems();
-    } catch (e) {
-      console.error("Update error:", e);
-      toast.error("Failed to save changes");
-    }
-  };
-
-  if (authLoading || (loading && !Object.values(items).some(a => a.length > 0))) {
+  if (loading) {
     return (
-      <AdminLayout role="verifier">
-        <div className="space-y-4">
-          <ShimmerLoader height={600} width="100%" />
+      <div className="space-y-6">
+        <div className="glass rounded-xl p-6 border border-white/10">
+          <h3 className="text-lg font-medium text-muted-foreground">Loading matches...</h3>
         </div>
-      </AdminLayout>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="space-y-6">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="flex">
+            <div className="flex-shrink-0">
+              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+              </svg>
+            </div>
+            <div className="ml-3">
+              <h3 className="text-sm font-medium text-red-800">Error</h3>
+              <div className="mt-2 text-sm text-red-700">{error}</div>
+<button
+                 onClick={() => loadMatches().then(setMatches).catch(() => {})}
+                 className="mt-3 px-3 py-1.5 text-sm font-medium bg-red-100 text-red-800 rounded-lg hover:bg-red-200"
+               >
+                 Retry
+               </button>
+            </div>
+          </div>
+        </div>
+      </div>
     );
   }
 
   return (
-    <AdminLayout role="verifier">
-      <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="space-y-6">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <Shield className="h-6 w-6 text-primary" />
-            <div>
-              <h2 className="text-xl font-bold">Manual Override</h2>
-              <p className="text-sm text-muted-foreground">Edit verified data or return to queue</p>
-            </div>
+    <div className="space-y-6">
+      <div className="flex items-center justify-between">
+        <h1 className="text-2xl font-bold">Manual Match Override</h1>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4">
+        {/* Match Selector */}
+        <div className="glass rounded-xl p-4 border border-white/10">
+          <h2 className="text-xl font-bold mb-4">Select Match</h2>
+          <div className="space-y-3">
+            <label className="block text-sm font-medium mb-2">Match</label>
+            <select
+              value={selectedMatchId || ""}
+              onChange={e => setSelectedMatchId(e.target.value)}
+              className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
+            >
+              <option value="">Select a match</option>
+              {matches.map(match => (
+                <option key={match.id} value={match.id}>
+                  {(match.home_team?.name || "TBD")} vs {(match.away_team?.name || "TBD")} - {new Date(match.match_date).toLocaleString()}
+                </option>
+              ))}
+            </select>
           </div>
-          <button onClick={fetchItems} className="p-2 rounded-lg glass hover:bg-white/10">
-            <RefreshCw className={`h-5 w-5 ${loading ? "animate-spin" : ""}`} />
-          </button>
         </div>
 
-        {(Object.keys(sectionConfig) as SectionType[]).map((section) => (
-          <AdminCard key={section}>
-            <button onClick={() => toggleSection(section)} className="w-full flex items-center justify-between py-2">
-              <div className="flex items-center gap-3">
-                {sectionConfig[section].icon}
-                <span className="font-bold text-lg">{sectionConfig[section].label}</span>
-                <span className="text-xs bg-primary/20 text-primary px-2 py-0.5 rounded-full">
-                  {items[section].length} verified
-                </span>
+        {/* Match Details and Editor */}
+        {matchData && (
+          <div className="glass rounded-xl p-4 border border-white/10">
+            <h2 className="text-xl font-bold mb-4">Edit Match Details</h2>
+            <div className="space-y-4">
+              {/* Current Match Info */}
+              <div className="text-muted-foreground">
+                <p><strong>Match:</strong> {matchData.home_team?.name || "TBD"} vs {matchData.away_team?.name || "TBD"}</p>
+                <p><strong>Current Date:</strong> {new Date(matchData.match_date).toLocaleString()}</p>
+                <p><strong>Current Status:</strong> {matchData.status}</p>
+                <p><strong>Current Duration:</strong> {matchData.duration_minutes ? `${matchData.duration_minutes} minutes` : "Not set"}</p>
               </div>
-              <span className="text-muted-foreground transition-transform" style={{ transform: openSections.has(section) ? "rotate(90deg)" : "none" }}>▶</span>
-            </button>
-            <AnimatePresence>
-              {openSections.has(section) && (
-                <motion.div initial={{ height: 0, opacity: 0 }} animate={{ height: "auto", opacity: 1 }} exit={{ height: 0, opacity: 0 }} className="mt-4 space-y-2">
-                  {items[section].length === 0 ? (
-                    <p className="text-sm text-muted-foreground py-4 text-center">No verified {section} found</p>
-                  ) : (
-                    items[section].map((item) => (
-                      <div key={item.id} className="flex items-center justify-between p-3 glass rounded-lg hover:bg-white/5 transition-colors">
-                        <div className="flex-1 truncate pr-4">
-                          <span className="font-medium">
-                            {section === "matches" 
-                              ? `${item.home_team?.name || item.home_team_id || 'Unknown'} vs ${item.away_team?.name || item.away_team_id || 'Unknown'}` 
-                              : section === "players" 
-                                ? `${item.name} (${item.teams?.name || 'No Team'})` 
-                                : item.title || item.name || 'Untitled'}
-                          </span>
-                          <p className="text-xs text-muted-foreground truncate">{item.id}</p>
-                        </div>
-                        <button
-                          onClick={() => {
-                            setSelectedItem({
-                              id: item.id,
-                              type: section,
-                              title: section === "matches" 
-                                ? `${item.home_team?.name || 'Unknown'} vs ${item.away_team?.name || 'Unknown'}` 
-                                : item.name || item.title || 'Untitled',
-                              data: item,
-                            });
-                            setUnverifyChecked(false);
-                            setShowEditModal(true);
-                          }}
-                          className="p-2 rounded-lg hover:bg-primary/20 text-primary transition-colors"
-                        >
-                          <Edit className="h-4 w-4" />
-                        </button>
-                      </div>
-                    ))
-                  )}
-                </motion.div>
-              )}
-            </AnimatePresence>
-          </AdminCard>
-        ))}
-      </motion.div>
 
-      <GlassModal open={showEditModal} onClose={() => setShowEditModal(false)} title={selectedItem?.title || "Edit Item"} maxWidth="lg">
-        {selectedItem && (
-          <form action={handleSave} className="space-y-4">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-h-[60vh] overflow-y-auto p-1 custom-scrollbar">
-              {Object.entries(selectedItem.data)
-                .filter(([key]) => !['id', 'created_at', 'updated_at', 'is_verified'].includes(key))
-                .map(([key, value]) => (
-                  <div key={key}>
-                    <label className="block text-sm font-medium mb-1 capitalize">{key.replace(/_/g, ' ')}</label>
-                    <input
-                      name={key}
-                      type="text"
-                      defaultValue={value === null ? "" : String(value)}
-                      className="w-full px-3 py-2 glass rounded-lg focus:border-primary focus:outline-none bg-white/5"
-                    />
-                  </div>
-                ))}
+              {/* Edit Form */}
+              <div className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium mb-2">Match Date</label>
+                  <input
+                    type="datetime-local"
+                    value={formData.match_date}
+                    onChange={e => setFormData({ ...formData, match_date: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Duration (minutes)</label>
+                  <input
+                    type="number"
+                    value={formData.duration_minutes}
+                    onChange={e => setFormData({ ...formData, duration_minutes: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-2">Status</label>
+                  <select
+                    value={formData.status}
+                    onChange={e => setFormData({ ...formData, status: e.target.value })}
+                    className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
+                  >
+                    <option value="">Select status</option>
+                    <option value="scheduled">Scheduled</option>
+                    <option value="live">Live</option>
+                    <option value="half_time">Half-Time</option>
+                    <option value="finished">Finished</option>
+                  </select>
+                </div>
+
+                <button
+                  onClick={handleSave}
+                  className="px-4 py-2 bg-primary text-primary-foreground rounded-lg"
+                >
+                  Save Changes
+                </button>
+              </div>
             </div>
-            <div className="flex items-center gap-3 p-3 bg-red-500/10 rounded-lg border border-red-500/20">
-              <input
-                type="checkbox"
-                id="unverify"
-                checked={unverifyChecked}
-                onChange={(e) => setUnverifyChecked(e.target.checked)}
-                className="w-4 h-4 rounded bg-white/10 border-white/20 accent-primary"
-              />
-              <label htmlFor="unverify" className="text-sm font-medium text-red-400">
-                Unverify this item (returns to Verifier Queue)
-              </label>
-            </div>
-            <div className="flex gap-3 justify-end pt-4">
-              <button type="button" onClick={() => setShowEditModal(false)} className="px-4 py-2 glass rounded-lg hover:bg-white/10">
-                Cancel
-              </button>
-              <button
-                type="submit"
-                className="px-6 py-2 bg-primary text-white rounded-lg font-bold hover:bg-primary/90 transition-colors"
-              >
-                Save Changes
-              </button>
-            </div>
-          </form>
+          </div>
         )}
-      </GlassModal>
-    </AdminLayout>
+      </div>
+    </div>
   );
 }

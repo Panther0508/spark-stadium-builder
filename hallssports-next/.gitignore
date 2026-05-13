@@ -8,6 +8,8 @@
 !.yarn/patches
 !.yarn/plugins
 !.yarn/releases
+*.txt
+*.bak
 !.yarn/versions
 
 # testing

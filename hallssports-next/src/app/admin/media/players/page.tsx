@@ -1,15 +1,14 @@
 "use client";
-/* eslint-disable @next/next/no-img-element */
 
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useState, useEffect } from "react";
 import { useToast } from "@/components/ToastProvider";
-import { adminSelect, adminUpdate } from "@/app/admin/actions";
+import { adminSelect } from "@/app/admin/actions";
 import { FullScreenOverlay } from "@/components/FullScreenOverlay";
-import { Upload, User, Search, Image as ImageIcon } from "lucide-react";
-import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
+import ImageUpload from "@/components/admin/ImageUpload";
+import { User } from "lucide-react";
 
 type Player = {
   id: string;
@@ -31,9 +30,9 @@ export default function PlayerPhotosPage() {
   const [loadingData, setLoadingData] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedTeam, setSelectedTeam] = useState<string>("all");
-  const [uploadingId, setUploadingId] = useState<string | null>(null);
-  const [editingBioId, setEditingBioId] = useState<string | null>(null);
-  const [bioText, setBioText] = useState("");
+  const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
+  const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
+  const [newBio, setNewBio] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -47,7 +46,8 @@ export default function PlayerPhotosPage() {
         ]);
         setPlayers(playersData);
         setTeams(teamsData);
-      } catch {
+      } catch (error) {
+        console.error('Failed to load players:', error);
         addToast({ type: "error", title: "Failed to load players" });
       } finally {
         setLoadingData(false);
@@ -64,39 +64,41 @@ export default function PlayerPhotosPage() {
     return matchesSearch && matchesTeam;
   });
 
-  const handlePhotoUpload = async (playerId: string, url: string) => {
-    if (!url) return;
-    setUploadingId(playerId);
+  const handleSave = async () => {
+    if (!editingPlayerId) return;
+    
     try {
-      await adminUpdate('players', { id: playerId }, { photo_url: url });
-      setPlayers(players.map(p => p.id === playerId ? { ...p, photo_url: url } : p));
-      addToast({ type: "success", title: "Photo updated" });
-    } catch {
-      addToast({ type: "error", title: "Failed to update photo" });
-    } finally {
-      setUploadingId(null);
-    }
-  };
-
-  const handleBioSave = async (playerId: string) => {
-    setUploadingId(playerId);
-    try {
-      await adminUpdate('players', { id: playerId }, { bio: bioText });
-      setPlayers(players.map(p => p.id === playerId ? { ...p, bio: bioText } : p));
-      setEditingBioId(null);
-      addToast({ type: "success", title: "Bio updated" });
-    } catch {
-      addToast({ type: "error", title: "Failed to update bio" });
-    } finally {
-      setUploadingId(null);
-    }
-  };
-
-  const scrollToFirstMissing = () => {
-    const firstMissing = players.find(p => !p.photo_url);
-    if (firstMissing) {
-      const el = document.getElementById(`player-${firstMissing.id}`);
-      el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      const res = await fetch('/api/admin/player-update', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: editingPlayerId,
+          photo_url: uploadedUrl,
+          bio: newBio 
+        })
+      });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to update player');
+      }
+      
+      // Update local state
+      setPlayers(prev => 
+        prev.map(p => 
+          p.id === editingPlayerId 
+            ? { ...p, photo_url: uploadedUrl ?? undefined, bio: newBio } 
+            : p
+        )
+      );
+      
+      setEditingPlayerId(null);
+      setUploadedUrl(null);
+      setNewBio("");
+      addToast({ type: "success", title: "Player updated" });
+    } catch (error) {
+      console.error('Failed to update player:', error);
+      addToast({ type: "error", title: error instanceof Error ? error.message : "Failed to update player" });
     }
   };
 
@@ -115,7 +117,6 @@ export default function PlayerPhotosPage() {
           <h1 className="text-2xl font-bold">Player Photos</h1>
           <div className="flex items-center gap-3">
             <div className="flex items-center gap-2 glass px-3 py-1.5 rounded-lg">
-              <Search className="w-4 h-4 text-muted-foreground" />
               <input
                 type="text"
                 value={searchTerm}
@@ -135,7 +136,13 @@ export default function PlayerPhotosPage() {
               ))}
             </select>
             <button
-              onClick={scrollToFirstMissing}
+              onClick={() => {
+                const firstMissing = players.find(p => !p.photo_url);
+                if (firstMissing) {
+                  const el = document.getElementById(`player-${firstMissing.id}`);
+                  el?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+                }
+              }}
               className="px-3 py-1.5 bg-primary/10 hover:bg-primary/20 rounded-lg text-sm font-medium min-h-[44px]"
             >
               Missing: {missingPhotosCount}
@@ -143,25 +150,31 @@ export default function PlayerPhotosPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+        {filteredPlayers.length === 0 && (
+          <div className="text-center py-12">
+            <p className="text-muted-foreground">No players yet. Add players from the Scout section.</p>
+          </div>
+        )}
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {filteredPlayers.map(player => (
             <div 
               key={player.id} 
               id={`player-${player.id}`}
-              className="glass rounded-xl p-4 border border-white/10 space-y-3"
+              className="glass rounded-xl p-4 border border-white/10 space-y-4"
             >
               <div className="flex items-center gap-3">
-                <div className="relative w-12 h-12 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
-                  {player.photo_url ? (
-                    <img
-                      src={player.photo_url}
-                      alt={player.name}
-                      className="max-w-full max-h-full object-cover"
-                    />
-                  ) : (
-                    <User className="w-6 h-6 text-muted-foreground m-auto" />
-                  )}
-                </div>
+<div className="relative w-12 h-12 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
+                    {player.photo_url ? (
+                      <img
+                        src={player.photo_url}
+                        alt={player.name}
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <User className="w-6 h-6 text-muted-foreground m-auto" />
+                    )}
+                  </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium truncate">{player.name}</div>
                   <div className="text-xs text-muted-foreground">
@@ -176,60 +189,72 @@ export default function PlayerPhotosPage() {
               <div className="text-xs">
                 <span className="text-muted-foreground">Bio: </span>
                 <span className="line-clamp-2">
-                  {player.bio ? player.bio.slice(0, 80) + (player.bio.length > 80 ? '...' : '') : 'No bio'}
+                  {player.bio ? player.bio.slice(0, 80) + (player.bio.length > 80 ? '...' : '') : 'No bio yet'}
                 </span>
               </div>
 
-              <div className="flex gap-2">
-                <CloudinaryUpload 
-                  value={player.photo_url} 
-                  onSuccess={(url) => handlePhotoUpload(player.id, url)}
-                  className="w-full"
-                />
+              <div className="flex gap-2 mt-3">
+                <button
+                  onClick={() => {
+                    setEditingPlayerId(player.id);
+                    setUploadedUrl(player.photo_url ?? null);
+                    setNewBio(player.bio || "");
+                  }}
+                  className="flex-1 min-h-[44px] px-3 py-2 border border-green-500/40 rounded-lg text-green-400 hover:bg-green-500/10"
+                >
+                  Edit
+                </button>
               </div>
-
-              <button
-                onClick={() => {
-                  setEditingBioId(player.id);
-                  setBioText(player.bio || "");
-                }}
-                className="w-full min-h-[44px] px-3 py-2 glass hover:bg-white/20 rounded-lg text-sm"
-              >
-                Edit Bio
-              </button>
             </div>
           ))}
-        </div>
 
-        <FullScreenOverlay
-          isOpen={!!editingBioId}
-          onClose={() => setEditingBioId(null)}
-        >
-          <div className="space-y-4">
-            <h2 className="text-xl font-bold">Edit Bio</h2>
-            <textarea
-              value={bioText}
-              onChange={e => setBioText(e.target.value)}
-              placeholder="Enter player bio..."
-              className="w-full h-32 px-3 py-2 rounded-lg bg-white/5 border border-white/20 focus:border-primary focus:outline-none resize-none"
-            />
-            <div className="flex gap-3 pt-2">
-              <button
-                onClick={() => setEditingBioId(null)}
-                className="flex-1 min-h-[44px] px-4 py-2 rounded-lg glass hover:bg-white/20"
-              >
-                Cancel
-              </button>
-              <button
-                onClick={() => handleBioSave(editingBioId!)}
-                disabled={uploadingId === editingBioId}
-                className="flex-1 min-h-[44px] px-4 py-2 bg-primary text-primary-foreground rounded-lg disabled:opacity-50"
-              >
-                {uploadingId ? "Saving..." : "Save"}
-              </button>
-            </div>
-          </div>
-        </FullScreenOverlay>
+          <FullScreenOverlay
+            isOpen={!!editingPlayerId}
+            onClose={() => {
+              setEditingPlayerId(null);
+              setUploadedUrl(null);
+              setNewBio("");
+            }}
+          >
+            {editingPlayerId ? (
+              <>
+                <div className="space-y-4">
+                  <h2 className="text-xl font-bold">Edit Player</h2>
+                  <ImageUpload 
+                    label="Player Photo"
+                    currentUrl={uploadedUrl}
+                    onUpload={(url) => setUploadedUrl(url)}
+                  />
+                  <textarea
+                    value={newBio}
+                    onChange={e => setNewBio(e.target.value)}
+                    placeholder="Enter player bio..."
+                    className="w-full h-32 px-3 py-2 rounded-lg bg-white/5 border border-white/20 focus:border-primary focus:outline-none resize-none"
+                  />
+                  <div className="flex gap-3 pt-2">
+                    <button
+                      onClick={() => {
+                        setEditingPlayerId(null);
+                        setUploadedUrl(null);
+                        setNewBio("");
+                      }}
+                      className="flex-1 min-h-[44px] px-4 py-2 rounded-lg glass hover:bg-white/20"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleSave}
+                      disabled={!uploadedUrl && !players.find(p => p.id === editingPlayerId)?.photo_url}
+                      className="flex-1 min-h-[44px] px-4 py-2 bg-green-500 text-green-50 foreground rounded-lg disabled:opacity-50"
+                    >
+                      Save
+                    </button>
+                  </div>
+                </div>
+              </>
+            ) : null}
+          </FullScreenOverlay>
+        </div>
       </div>
     </AdminLayout>
   );

@@ -20,7 +20,8 @@ function SettingToggle({ label, storageKey, defaultChecked = false, onChange }: 
   const [checked, setChecked] = useState(() => {
     if (typeof window === "undefined") return defaultChecked;
     const stored = localStorage.getItem(storageKey);
-    return stored === "true" || defaultChecked;
+    if (stored === null) return defaultChecked;
+    return stored === "true";
   });
 
   const handleChange = (newVal: boolean) => {
@@ -28,7 +29,7 @@ function SettingToggle({ label, storageKey, defaultChecked = false, onChange }: 
     if (typeof window !== "undefined") {
       localStorage.setItem(storageKey, String(newVal));
       if (newVal && storageKey === "hallssports_popups") {
-        if (Notification.permission === "default") {
+        if ("Notification" in window && Notification.permission === "default") {
           Notification.requestPermission();
         }
       }

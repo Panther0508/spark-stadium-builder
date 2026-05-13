@@ -16,6 +16,8 @@ export interface Match {
   community_visible: boolean;
   image_url?: string;
   venue?: string;
+  admin_post?: string;
+  duration_minutes?: number;
 }
 
 // Chat message types
@@ -99,10 +101,10 @@ const mockMatches: Match[] = [
 ];
 
 // Helper to format match data from joined response
-const formatMatch = (m: any): Match => ({
-  ...m,
-  home_team: m.home_team?.name || (typeof m.home_team === 'string' ? m.home_team : 'Unknown'),
-  away_team: m.away_team?.name || (typeof m.away_team === 'string' ? m.away_team : 'Unknown'),
+const formatMatch = (m: Record<string, unknown>): Match => ({
+  ...(m as unknown as Match),
+  home_team: (m.home_team as { name: string })?.name || (typeof m.home_team === 'string' ? m.home_team : 'Unknown'),
+  away_team: (m.away_team as { name: string })?.name || (typeof m.away_team === 'string' ? m.away_team : 'Unknown'),
 });
 
 // Fetch a featured match with fallback logic
@@ -327,8 +329,7 @@ export async function insertChatMessage(message: {
     return mockMsg;
   }
 
-  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  const { data, error } = await (client as any)
+  const { data, error } = await client
     .from('match_chats')
     .insert([message])
     .select()
@@ -351,8 +352,9 @@ export async function getPlayerById(playerId: string): Promise<Player | null> {
       .single();
 
     if (data) {
-      const d = data as any;
-      return { ...d, team: d.team?.name || d.team || 'Unknown' };
+      const d = data as Record<string, unknown>;
+      const team = (d.team as { name: string })?.name || (d.team as string) || 'Unknown';
+      return { ...(d as unknown as Player), team };
     }
     return null;
   } catch {
@@ -373,7 +375,10 @@ export async function getPlayers(): Promise<Player[]> {
       .order('name', { ascending: true });
 
     if (data) {
-      return (data as any[]).map(p => ({ ...p, team: p.team?.name || p.team || 'Unknown' }));
+      return (data as Record<string, unknown>[]).map(p => {
+        const team = (p.team as { name: string })?.name || (p.team as string) || 'Unknown';
+        return { ...(p as unknown as Player), team };
+      });
     }
     return [];
   } catch {

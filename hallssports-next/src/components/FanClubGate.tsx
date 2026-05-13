@@ -1,11 +1,11 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import { GlassCard } from "./GlassCard";
 import { TeamLogo } from "./StatusBadge";
 import { format } from "date-fns";
-import { Trophy, Users, Check, RefreshCw } from "lucide-react";
+import { Trophy, Check, RefreshCw } from "lucide-react";
 import type { Match } from "@/lib/queries";
 
 interface FanClubGateProps {

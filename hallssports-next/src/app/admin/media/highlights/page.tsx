@@ -8,7 +8,7 @@ import { useAdminAuth } from "@/hooks/useAdminAuth";
 import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Play } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
-import { getHighlights, createHighlight, deleteHighlight } from "./actions";
+import { getHighlights } from "./actions";
 import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
 
 type Highlight = {
@@ -53,7 +53,12 @@ export default function HighlightsPage() {
   const handleDelete = async (id: string) => {
     if (!confirm("Delete this highlight?")) return;
     try {
-      await deleteHighlight(id);
+      const res = await fetch('/api/admin/reject', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'highlights', id })
+      });
+      if (!res.ok) throw new Error('Delete failed');
       setHighlights(highlights.filter(h => h.id !== id));
       addToast({ type: "success", title: "Deleted" });
     } catch {
@@ -65,19 +70,29 @@ export default function HighlightsPage() {
     e.preventDefault();
     setSubmitting(true);
     try {
-      await createHighlight({
-        title: formData.title,
-        media_url: formData.media_url,
-        media_type: formData.media_type,
-        match_id: formData.match_id || undefined,
+      const res = await fetch('/api/admin/highlight-create', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: formData.title,
+          media_url: formData.media_url,
+          media_type: formData.media_type,
+          match_id: formData.match_id || undefined,
+        })
       });
+      
+      if (!res.ok) {
+        const error = await res.json();
+        throw new Error(error.error || 'Failed to add highlight');
+      }
+      
       setFormData({ title: "", media_url: "", media_type: "image", match_id: "" });
       setShowForm(false);
       const data = await getHighlights();
       setHighlights(data);
       addToast({ type: "success", title: "Highlight added" });
-    } catch {
-      addToast({ type: "error", title: "Failed to add highlight" });
+    } catch (err) {
+      addToast({ type: "error", title: err instanceof Error ? err.message : "Failed to add highlight" });
     } finally {
       setSubmitting(false);
     }

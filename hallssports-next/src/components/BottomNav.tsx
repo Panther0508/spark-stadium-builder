@@ -1,6 +1,6 @@
 "use client";
 
-import { usePathname, useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { cn } from "@/lib/utils";
@@ -14,10 +14,9 @@ const items = [
 ] as const;
 
 export function BottomNav() {
-  const path = usePathname();
-  const router = useRouter();
+   const path = usePathname();
 
-  return (
+   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 px-3 pb-3 pt-2">
       <div className="glass-strong mx-auto max-w-md rounded-2xl px-2 py-2 flex items-center justify-between shadow-2xl shadow-black/50">
         {items.map((it) => {
@@ -43,15 +42,18 @@ export function BottomNav() {
             </Link>
           );
         })}
-        <button
-          onClick={() => router.push("/more")}
-          className="flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all hover:bg-white/10 min-h-[44px] min-w-[44px]"
+        <Link
+          href="/more"
+          className={cn(
+            "flex flex-col items-center gap-0.5 px-3 py-1.5 rounded-xl transition-all min-h-[44px] min-w-[44px]",
+            path.startsWith("/more") && "bg-primary/10"
+          )}
         >
           <motion.div whileTap={{ scale: 0.9 }}>
-            <MoreHorizontal className="h-5 w-5 text-muted-foreground" />
+            <MoreHorizontal className={cn("h-5 w-5", path.startsWith("/more") ? "text-primary text-glow" : "text-muted-foreground")} />
           </motion.div>
-          <span className="text-[10px] text-muted-foreground">More</span>
-        </button>
+          <span className={cn("text-[10px]", path.startsWith("/more") ? "text-primary" : "text-muted-foreground")}>More</span>
+        </Link>
       </div>
     </nav>
   );

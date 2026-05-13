@@ -11,12 +11,16 @@ const eventsCache = new Map<string, { data: MatchEvent[]; timestamp: number }>()
 const CACHE_TTL = 10 * 1000; // 10 seconds
 
 // Helper to format match data from joined response
-function formatMatch(m: any): Match {
+function formatMatch(m: { 
+  home_team?: { name: string } | string; 
+  away_team?: { name: string } | string; 
+  [key: string]: unknown 
+}): Match {
   return {
     ...m,
-    home_team: m.home_team?.name || (typeof m.home_team === 'string' ? m.home_team : 'Unknown'),
-    away_team: m.away_team?.name || (typeof m.away_team === 'string' ? m.away_team : 'Unknown'),
-  };
+    home_team: (m.home_team as { name: string })?.name || (typeof m.home_team === 'string' ? m.home_team : 'Unknown'),
+    away_team: (m.away_team as { name: string })?.name || (typeof m.away_team === 'string' ? m.away_team : 'Unknown'),
+  } as Match;
 }
 
 export async function GET(request: NextRequest) {

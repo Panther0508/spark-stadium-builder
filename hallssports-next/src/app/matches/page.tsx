@@ -91,6 +91,7 @@ export default function MatchesPage() {
   if (loading) {
     return (
       <PageShell title="Matches">
+        <BackButton />
         <ShimmerLoader height={400} width="100%" />
       </PageShell>
     );
@@ -99,6 +100,7 @@ export default function MatchesPage() {
   if (error) {
     return (
       <PageShell title="Matches">
+        <BackButton />
         <GlassCard className="p-6 text-center">
           <p className="text-red-400 mb-2">Error: {error}</p>
           <button onClick={() => window.location.reload()} className="text-primary underline">Retry</button>

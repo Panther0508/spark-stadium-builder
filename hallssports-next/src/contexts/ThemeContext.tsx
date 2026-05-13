@@ -1,6 +1,7 @@
 "use client";
 
 import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { MotionConfig } from "framer-motion";
 
 type Theme = "dark" | "light";
 type FontSize = "small" | "medium" | "large";
@@ -40,12 +41,21 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const root = document.documentElement;
+    
+    // Theme
     if (theme === "light") {
       root.classList.remove("dark");
     } else {
       root.classList.add("dark");
     }
-    root.setAttribute("data-font-size", fontSize);
+    
+    // Font Size
+    root.classList.remove("text-sm", "text-base", "text-lg");
+    if (fontSize === "small") root.classList.add("text-sm");
+    else if (fontSize === "medium") root.classList.add("text-base");
+    else if (fontSize === "large") root.classList.add("text-lg");
+
+    // Reduce Motion data attribute for CSS if needed
     root.setAttribute("data-reduce-motion", String(reduceMotion));
   }, [theme, fontSize, reduceMotion]);
 
@@ -57,18 +67,18 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
   const setFontSize = (newSize: FontSize) => {
     setFontSizeState(newSize);
     localStorage.setItem("hallssports_fontSize", newSize);
-    document.documentElement.setAttribute("data-font-size", newSize);
   };
 
   const setReduceMotion = (reduce: boolean) => {
     setReduceMotionState(reduce);
     localStorage.setItem("hallssports_reduceMotion", String(reduce));
-    document.documentElement.setAttribute("data-reduce-motion", String(reduce));
   };
 
   return (
     <ThemeContext.Provider value={{ theme, setTheme, fontSize, setFontSize, reduceMotion, setReduceMotion }}>
-      {children}
+      <MotionConfig reducedMotion={reduceMotion ? "always" : "never"}>
+        {children}
+      </MotionConfig>
     </ThemeContext.Provider>
   );
 }
