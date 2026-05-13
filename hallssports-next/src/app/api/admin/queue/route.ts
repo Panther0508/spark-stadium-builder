@@ -50,11 +50,11 @@ export async function POST() {
 
     // Fetch unverified items from multiple tables
     const [matches, events, players, announcements, highlights] = await Promise.all([
-      supabase.from("matches").select("*, home_team:home_team_id(name), away_team:away_team_id(name)").eq("is_verified", false),
-      supabase.from("match_events").select("*, match:match_id(id, home_team_id, away_team_id), player:player_id(id, name, team_id)").eq("is_verified", false),
-      supabase.from("players").select("*, team:team_id(name)").eq("is_verified", false),
-      supabase.from("announcements").select("*").eq("is_verified", false),
-      supabase.from("highlights").select("*").eq("is_verified", false),
+      (supabase as any).from("matches").select("*, home_team:home_team_id(name), away_team:away_team_id(name)").eq("is_verified", false),
+      (supabase as any).from("match_events").select("*, match:match_id(id, home_team_id, away_team_id), player:player_id(id, name, team_id)").eq("is_verified", false),
+      (supabase as any).from("players").select("*, team:team_id(name)").eq("is_verified", false),
+      (supabase as any).from("announcements").select("*").eq("is_verified", false),
+      (supabase as any).from("highlights").select("*").eq("is_verified", false),
     ]);
 
     // Check for errors

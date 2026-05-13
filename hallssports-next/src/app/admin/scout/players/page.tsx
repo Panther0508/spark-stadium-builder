@@ -4,10 +4,11 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { AdminFormField, AdminModal } from "@/components/admin";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
-import { useState, useEffect } from "react";
-import { Plus, User } from "lucide-react";
+import { useState, useEffect, useRef } from "react";
+import { Plus, User, FileUp, Download } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
 import { adminSelect, adminInsert, adminUpdate } from "@/app/admin/actions";
+import Papa from "papaparse";
 
 type Player = {
   id: string;
@@ -39,6 +40,75 @@ export default function PlayersPage() {
     position: "",
     number: "",
   });
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleCSVImport = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    Papa.parse(file, {
+      header: true,
+      skipEmptyLines: true,
+      complete: async (results) => {
+        const rows = results.data as any[];
+        if (rows.length === 0) {
+          addToast({ type: "error", title: "CSV is empty" });
+          return;
+        }
+
+        // Validate headers
+        const headers = Object.keys(rows[0]);
+        const required = ["name", "team", "position", "number"];
+        const missing = required.filter(h => !headers.includes(h));
+        
+        if (missing.length > 0) {
+          addToast({ type: "error", title: `Missing headers: ${missing.join(", ")}` });
+          return;
+        }
+
+        try {
+          const playersToInsert = rows.map(row => {
+            const team = teams.find(t => t.name.toLowerCase() === row.team.trim().toLowerCase());
+            if (!team) throw new Error(`Team not found: ${row.team}`);
+            return {
+              name: row.name.trim(),
+              team_id: team.id,
+              position: row.position.trim(),
+              number: row.number.trim(),
+            };
+          });
+
+          const res = await fetch("/api/admin/players-bulk", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(playersToInsert),
+          });
+
+          if (!res.ok) throw new Error("Bulk import failed");
+          
+          addToast({ type: "success", title: `Imported ${playersToInsert.length} players` });
+          handleRetry(); // Refresh list
+        } catch (err) {
+          addToast({ type: "error", title: err instanceof Error ? err.message : "Import failed" });
+        } finally {
+          if (fileInputRef.current) fileInputRef.current.value = "";
+        }
+      }
+    });
+  };
+
+  const downloadTemplate = () => {
+    const csv = Papa.unparse([
+      { name: "John Doe", team: teams[0]?.name || "Rangers FC", position: "Forward", number: "10" },
+      { name: "Jane Smith", team: teams[1]?.name || "Panthers United", position: "Midfielder", number: "7" },
+    ]);
+    const blob = new Blob([csv], { type: "text/csv" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = "player_template.csv";
+    a.click();
+  };
 
 useEffect(() => {
     const handleLoad = async () => {
@@ -216,13 +286,35 @@ const handleSave = async () => {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Manage Players</h1>
           <div className="flex gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleCSVImport}
+              accept=".csv"
+              className="hidden"
+            />
+            <button
+              onClick={downloadTemplate}
+              className="px-4 py-2 glass border border-white/10 rounded-lg flex items-center gap-2 hover:bg-white/5 transition-all text-xs sm:text-sm"
+              title="Download CSV Template"
+            >
+              <Download className="w-4 h-4" />
+              <span className="hidden sm:inline">Template</span>
+            </button>
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              className="px-4 py-2 glass border border-white/10 rounded-lg flex items-center gap-2 hover:bg-white/5 transition-all text-xs sm:text-sm"
+            >
+              <FileUp className="w-4 h-4" />
+              <span className="hidden sm:inline">Import CSV</span>
+            </button>
             <button
               onClick={() => {
                 setEditingPlayer(null);
                 setFormData({ name: "", team_id: "", position: "", number: "" });
                 setModalOpen(true);
               }}
-              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2 shadow-lg shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all text-xs sm:text-sm"
             >
               <Plus className="w-4 h-4" />
               Add Player

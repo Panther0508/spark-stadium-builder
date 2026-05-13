@@ -35,17 +35,19 @@ function getStoredReduceMotion(): boolean {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
-  const [fontSize, setFontSizeState] = useState<FontSize>("medium");
-  const [reduceMotion, setReduceMotionState] = useState<boolean>(false);
+  const [theme, setThemeState] = useState<Theme>(getStoredTheme());
+  const [fontSize, setFontSizeState] = useState<FontSize>(getStoredFontSize());
+  const [reduceMotion, setReduceMotionState] = useState<boolean>(getStoredReduceMotion());
 
   useEffect(() => {
-    // Initialize from localStorage only on client
-    if (typeof window !== "undefined") {
+    // Sync state if storage changes
+    const handleStorage = () => {
       setThemeState(getStoredTheme());
       setFontSizeState(getStoredFontSize());
       setReduceMotionState(getStoredReduceMotion());
-    }
+    };
+    window.addEventListener("storage", handleStorage);
+    return () => window.removeEventListener("storage", handleStorage);
   }, []);
 
   useEffect(() => {

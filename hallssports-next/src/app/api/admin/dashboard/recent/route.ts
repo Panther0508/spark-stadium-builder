@@ -5,73 +5,80 @@ export async function GET(_request: Request) {
   try {
     const supabase = getSupabaseAdminClient();
 
-    // Fetch recent announcements (last 5)
-    const { data: announcements, error: annError } = await supabase
-      .from("announcements")
-      .select("id, title, created_at")
+    // Fetch recent admin logs (last 10)
+    const { data: logs, error: logError } = await supabase
+      .from("admin_logs")
+      .select("id, action, table_name, details, created_at")
       .order("created_at", { ascending: false })
-      .limit(5);
-    if (annError) throw annError;
+      .limit(10);
+    
+    if (logError) {
+      console.warn("Failed to fetch admin_logs, falling back to basic activity:", logError.message);
+      
+      // Fallback: Combine and format basic activity from other tables
+      const [announcements, highlights, matches] = await Promise.all([
+        supabase.from("announcements").select("id, title, created_at").order("created_at", { ascending: false }).limit(5),
+        supabase.from("highlights").select("id, title, created_at").order("created_at", { ascending: false }).limit(5),
+        supabase.from("matches").select("id, match_date").order("match_date", { ascending: false }).limit(5),
+      ]);
 
-    // Fetch recent highlights (last 5)
-    const { data: highlights, error: highError } = await supabase
-      .from("highlights")
-      .select("id, title, created_at")
-      .order("created_at", { ascending: false })
-      .limit(5);
-    if (highError) throw highError;
+      const fallbackActivity: Array<{id: string; type: string; summary: string; timestamp: string}> = [];
 
-    // Fetch recent matches (last 5)
-    const { data: matches, error: matchError } = await supabase
-      .from("matches")
-      .select("id, match_date")
-      .order("match_date", { ascending: false })
-      .limit(5);
-    if (matchError) throw matchError;
-
-    // Combine and format as recent activity
-    const recentActivity: Array<{id: string; type: string; summary: string; timestamp: string}> = [];
-
-    if (announcements) {
-      (announcements as { id: string; title: string; created_at: string }[]).forEach((ann) => {
-        recentActivity.push({
+      (announcements.data as any[])?.forEach((ann) => {
+        fallbackActivity.push({
           id: ann.id,
           type: "announcement",
-          summary: ann.title || "Announcement update",
+          summary: `Announcement: ${ann.title || "Untitled"}`,
           timestamp: ann.created_at,
         });
       });
-    }
 
-    if (highlights) {
-      (highlights as { id: string; title: string; created_at: string }[]).forEach((high) => {
-        recentActivity.push({
+      (highlights.data as any[])?.forEach((high) => {
+        fallbackActivity.push({
           id: high.id,
           type: "highlight",
-          summary: high.title || "Highlight added",
+          summary: `Highlight: ${high.title || "Added"}`,
           timestamp: high.created_at,
         });
       });
-    }
 
-    if (matches) {
-      (matches as { id: string; match_date: string }[]).forEach((match) => {
-        recentActivity.push({
+      (matches.data as any[])?.forEach((match) => {
+        fallbackActivity.push({
           id: match.id,
           type: "match",
           summary: `Match scheduled for ${new Date(match.match_date).toLocaleDateString()}`,
           timestamp: match.match_date,
         });
       });
+
+      fallbackActivity.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+      return NextResponse.json(fallbackActivity.slice(0, 10));
     }
 
-    // Sort by timestamp descending
-    recentActivity.sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime());
+    // Format logs into recent activity format
+    const recentActivity = (logs as any[]).map((log) => {
+      let summary = `${log.action} on ${log.table_name}`;
+      
+      // Try to provide more detail from the 'new' record in details
+      if (log.details && typeof log.details === 'object') {
+        const details = log.details as { new?: { title?: string; name?: string; home_team?: string; away_team?: string } };
+        const newRecord = details.new;
+        if (newRecord) {
+          if (newRecord.title) summary = `${log.action} ${log.table_name}: ${newRecord.title}`;
+          else if (newRecord.name) summary = `${log.action} ${log.table_name}: ${newRecord.name}`;
+          else if (newRecord.home_team && newRecord.away_team) summary = `${log.action} match: ${newRecord.home_team} vs ${newRecord.away_team}`;
+        }
+      }
 
-    // Take only the 10 most recent
-    const limitedActivity = recentActivity.slice(0, 10);
+      return {
+        id: log.id,
+        type: log.table_name,
+        summary: summary,
+        timestamp: log.created_at,
+      };
+    });
 
-    return NextResponse.json(limitedActivity);
+    return NextResponse.json(recentActivity);
   } catch (error) {
     console.error("Error fetching recent activity:", error);
     return NextResponse.json(

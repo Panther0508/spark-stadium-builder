@@ -1,7 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/components/ToastProvider";
+import { AdminLayout } from "@/components/admin/AdminLayout";
+import { AdminCard } from "@/components/admin/AdminCard";
+import { Skeleton } from "@/components/Skeleton";
+import { Check, X, Shield, Users, Trophy, Megaphone, Film, Layers } from "lucide-react";
 
 type QueueItem = {
   id: string;
@@ -12,16 +16,24 @@ type QueueItem = {
 
 type Tab = "all" | "match" | "event" | "player" | "announcement" | "highlight";
 
+const TABLE_MAP: Record<string, string> = {
+  match: "matches",
+  event: "match_events",
+  player: "players",
+  announcement: "announcements",
+  highlight: "highlights",
+};
+
 export default function VerifierQueue() {
   const [items, setItems] = useState<QueueItem[]>([]);
+  const [selectedIds, setSelectedIds] = useState<string[]>([]);
   const [tab, setTab] = useState<Tab>("all");
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const { addToast } = useToast();
 
-  const loadQueue = async () => {
+  const loadQueue = useCallback(async () => {
     setLoading(true);
-    setError(null);
     try {
       const res = await fetch("/api/admin/queue", {
         method: "POST",
@@ -31,216 +43,236 @@ export default function VerifierQueue() {
       const data: QueueItem[] = await res.json();
       setItems(data);
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Unknown error";
-      setError(message);
-      addToast({ type: "error", title: message });
+      addToast({ type: "error", title: "Error loading queue" });
     } finally {
       setLoading(false);
     }
-};
+  }, [addToast]);
 
-   useEffect(() => {
-      // eslint-disable-next-line react-hooks/set-state-in-effect
-      loadQueue();
-    }, [loadQueue]);
+  useEffect(() => {
+    let active = true;
+    const fetch = async () => {
+      await loadQueue();
+    };
+    if (active) fetch();
+    return () => { active = false; };
+  }, [loadQueue]);
 
-  const handleApprove = async (id: string) => {
-     try {
-       const res = await fetch("/api/admin/verify", {
-         method: "POST",
-         headers: { "Content-Type": "application/json" },
-         body: JSON.stringify({ table: "matches", id }), // TODO: determine table from item type
-       });
-       if (!res.ok) throw new Error("Failed to approve");
-       addToast({ type: "success", title: "Item approved" });
-       const res2 = await fetch("/api/admin/queue", { method: "POST", headers: { "Content-Type": "application/json" } });
-       if (res2.ok) setItems(await res2.json());
-     } catch (err) {
-       const message = err instanceof Error ? err.message : "Failed to approve";
-       setError(message);
-       addToast({ type: "error", title: message });
-     }
-   };
+  const handleApprove = async (item: QueueItem) => {
+    setIsProcessing(true);
+    try {
+      const res = await fetch("/api/admin/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ table: TABLE_MAP[item.type], id: item.id }),
+      });
+      if (!res.ok) throw new Error("Failed to approve");
+      addToast({ type: "success", title: "Approved & Published" });
+      setItems(prev => prev.filter(i => i.id !== item.id));
+    } catch (err) {
+      addToast({ type: "error", title: "Failed to approve" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
 
-const handleReject = async (id: string) => {
-      // TODO: determine table from item type
+  const handleReject = async (item: QueueItem) => {
+    if (!confirm("Are you sure you want to reject and DELETE this item?")) return;
+    setIsProcessing(true);
+    try {
+      const res = await fetch("/api/admin/reject", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ table: TABLE_MAP[item.type], id: item.id }),
+      });
+      if (!res.ok) throw new Error("Failed to reject");
+      addToast({ type: "success", title: "Rejected & Deleted" });
+      setItems(prev => prev.filter(i => i.id !== item.id));
+    } catch (err) {
+      addToast({ type: "error", title: "Failed to reject" });
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
+  const handleBulkAction = async (action: "approve" | "reject") => {
+    if (selectedIds.length === 0) return;
+    if (action === "reject" && !confirm(`Reject and delete ${selectedIds.length} items?`)) return;
+    
+    setIsProcessing(true);
+    let successCount = 0;
+    
+    for (const id of selectedIds) {
+      const item = items.find(i => i.id === id);
+      if (!item) continue;
+      
       try {
-        const res = await fetch("/api/admin/reject", {
+        const endpoint = action === "approve" ? "/api/admin/verify" : "/api/admin/reject";
+        const res = await fetch(endpoint, {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ table: "matches", id }),
+          body: JSON.stringify({ table: TABLE_MAP[item.type], id: item.id }),
         });
-        if (!res.ok) throw new Error("Failed to reject");
-        addToast({ type: "success", title: "Item rejected" });
-        const res2 = await fetch("/api/admin/queue", { method: "POST", headers: { "Content-Type": "application/json" } });
-        if (res2.ok) setItems(await res2.json());
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to reject";
-        setError(message);
-        addToast({ type: "error", title: message });
+        if (res.ok) successCount++;
+      } catch (e) {
+        console.error(`Bulk ${action} failed for ${id}`, e);
       }
-    };
+    }
+    
+    addToast({ type: "success", title: `Bulk ${action} complete: ${successCount}/${selectedIds.length} successful` });
+    setSelectedIds([]);
+    loadQueue();
+    setIsProcessing(false);
+  };
 
-   const filteredItems = tab === "all"
-    ? items 
-    : items.filter(item => item.type === tab);
+  const toggleSelect = (id: string) => {
+    setSelectedIds(prev => prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]);
+  };
+
+  const filteredItems = tab === "all" ? items : items.filter(item => item.type === tab);
 
   if (loading) {
     return (
-      <div className="space-y-6">
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {[...Array(6)].map((_, i) => (
-            <div key={i} className="glass rounded-xl p-4 border border-white/10">
-              <div className="h-16 w-full rounded-lg bg-white/20"></div>
-              <div className="mt-3 space-y-2">
-                <div className="h-4 w-1/2 rounded bg-white/20"></div>
-                <div className="h-4 w-3/4 rounded bg-white/20"></div>
-                <div className="h-4 w-1/3 rounded bg-white/20"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-if (error) {
-    return (
-      <div className="space-y-6">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6">
-          <div className="flex">
-            <div className="flex-shrink-0">
-              <svg className="h-5 w-5 text-red-400" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-            </div>
-            <div className="ml-3">
-              <h3 className="text-sm font-medium text-red-800">Error loading queue</h3>
-              <div className="mt-2 text-sm text-red-700">{error}</div>
-              <button
-                onClick={loadQueue}
-                className="mt-3 px-3 py-1.5 text-sm font-medium bg-red-100 text-red-800 rounded-lg hover:bg-red-200"
-              >
-                Retry
-              </button>
-            </div>
+      <AdminLayout role="verifier">
+        <div className="space-y-4">
+          <Skeleton className="h-12 w-full" />
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {[...Array(6)].map((_, i) => <Skeleton key={i} className="h-32 w-full" />)}
           </div>
         </div>
-      </div>
-    );
-  }
-
-  if (items.length === 0) {
-    return (
-      <div className="text-center py-12">
-        <svg className="h-12 w-12 text-green-500 mx-auto mb-4" viewBox="0 0 20 20" fill="currentColor">
-          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
-        </svg>
-        <p className="text-muted-foreground">All content is verified – nothing to review!</p>
-      </div>
+      </AdminLayout>
     );
   }
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <h2 className="text-xl font-bold">Verification Queue</h2>
-      </div>
+    <AdminLayout role="verifier">
+      <div className="space-y-6 pb-24">
+        <div className="flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <Layers className="w-8 h-8 text-primary" />
+            <h1 className="text-2xl font-bold">Verification Queue</h1>
+          </div>
+          <div className="text-sm text-muted-foreground bg-white/5 px-3 py-1 rounded-full border border-white/10">
+            {items.length} items pending
+          </div>
+        </div>
 
-      <div className="flex gap-2 mb-4">
-        <button
-          onClick={() => setTab("all")}
-          className={`px-3 py-1 rounded-lg text-sm ${tab === "all" ? "bg-primary text-primary-foreground" : "glass"}`}
-        >
-          All
-        </button>
-        <button
-          onClick={() => setTab("match")}
-          className={`px-3 py-1 rounded-lg text-sm ${tab === "match" ? "bg-primary text-primary-foreground" : "glass"}`}
-        >
-          Matches
-        </button>
-        <button
-          onClick={() => setTab("event")}
-          className={`px-3 py-1 rounded-lg text-sm ${tab === "event" ? "bg-primary text-primary-foreground" : "glass"}`}
-        >
-          Events
-        </button>
-        <button
-          onClick={() => setTab("player")}
-          className={`px-3 py-1 rounded-lg text-sm ${tab === "player" ? "bg-primary text-primary-foreground" : "glass"}`}
-        >
-          Players
-        </button>
-        <button
-          onClick={() => setTab("announcement")}
-          className={`px-3 py-1 rounded-lg text-sm ${tab === "announcement" ? "bg-primary text-primary-foreground" : "glass"}`}
-        >
-          Announcements
-        </button>
-        <button
-          onClick={() => setTab("highlight")}
-          className={`px-3 py-1 rounded-lg text-sm ${tab === "highlight" ? "bg-primary text-primary-foreground" : "glass"}`}
-        >
-          Highlights
-        </button>
-      </div>
+        <div className="flex overflow-x-auto gap-2 pb-2 custom-scrollbar">
+          {(["all", "match", "event", "player", "announcement", "highlight"] as const).map(t => (
+            <button
+              key={t}
+              onClick={() => setTab(t)}
+              className={`px-4 py-1.5 rounded-xl text-sm font-medium whitespace-nowrap transition-all ${
+                tab === t ? "bg-primary text-white shadow-lg shadow-primary/20" : "glass hover:bg-white/10 border border-white/10"
+              }`}
+            >
+              {t.charAt(0).toUpperCase() + t.slice(1)}s
+            </button>
+          ))}
+        </div>
 
-      <div className="space-y-4">
-        {filteredItems.map(item => (
-          <div key={item.id} className="glass rounded-xl p-4 border border-white/10 flex items-start gap-4">
-            <div className="flex-shrink-0 h-10 w-10">
-              {/* Type icon */}
-              {item.type === "match" && (
-                <svg className="h-5 w-5 text-blue-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 0a10 10 0 100 20 10 10 0 000-20zM12.5 5a1 1 0 010 2h-5a1 1 0 100-2h5zM12 9a2 2 0 11-4 0 2 2 0 014 0z" />
-                </svg>
-              )}
-              {item.type === "event" && (
-                <svg className="h-5 w-5 text-green-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 0a10 10 0 100 20 10 10 0 000-20zm1 15h-2v-2h2v2zm0-4h-2v-2h2v2zm0-4h-2V7h2v2z" />
-                </svg>
-              )}
-              {item.type === "player" && (
-                <svg className="h-5 w-5 text-indigo-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 0a10 10 0 100 20 10 10 0 000-20zM12 6a2 2 0 11-4 0 2 2 0 014 0zm-2 8a4 4 0 100-8 4 4 0 000 8z" />
-                </svg>
-              )}
-              {item.type === "announcement" && (
-                <svg className="h-5 w-5 text-yellow-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 0a10 10 0 100 20 10 10 0 000-20zM9 count 3h2v2H9v-2zm0 4h2v2H9v-2z" />
-                </svg>
-              )}
-              {item.type === "highlight" && (
-                <svg className="h-5 w-5 text-red-500" viewBox="0 0 20 20" fill="currentColor">
-                  <path d="M10 0a10 10 0 100 20 10 10 0 000-20zM9.5 4h1v2h-1V4zm0 4h1v2h-1V8zm0 4h1v2h-1v-2z" />
-                </svg>
-              )}
-            </div>
-            <div>
-              <h3 className="text-lg font-medium">{item.summary}</h3>
-              <p className="text-xs text-muted-foreground mt-1">
-                {/* Relative time */}
-                {new Date(item.created_at).toLocaleString()}
-              </p>
-              <div className="mt-3 flex gap-2">
-                <button
-                  onClick={() => handleApprove(item.id)}
-                  className="px-3 py-1.5 text-sm font-medium bg-green-500 text-green-foreground rounded-lg hover:bg-green-600"
-                >
-                  Approve & Publish
-                </button>
-                <button
-                  onClick={() => handleReject(item.id)}
-                  className="px-3 py-1.5 text-sm font-medium border border-red-500 text-red-500 rounded-lg hover:bg-red-50"
-                >
-                  Reject / Delete
-                </button>
+        {filteredItems.length === 0 ? (
+          <div className="text-center py-20 glass rounded-2xl border border-white/10">
+            <CheckCircleIcon className="w-16 h-16 text-primary/40 mx-auto mb-4" />
+            <h3 className="text-xl font-bold">All caught up!</h3>
+            <p className="text-muted-foreground mt-2">There are no pending items in this category.</p>
+          </div>
+        ) : (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+            {filteredItems.map(item => (
+              <div 
+                key={item.id} 
+                className={`glass rounded-2xl p-4 border transition-all flex gap-4 ${
+                  selectedIds.includes(item.id) ? "border-primary bg-primary/5" : "border-white/10"
+                }`}
+              >
+                <div className="pt-1">
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.includes(item.id)}
+                    onChange={() => toggleSelect(item.id)}
+                    className="w-5 h-5 rounded border-white/20 bg-white/5 accent-primary"
+                  />
+                </div>
+                
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="p-1.5 rounded-lg bg-white/5">
+                        {item.type === 'match' && <Trophy className="w-4 h-4 text-blue-400" />}
+                        {item.type === 'event' && <Shield className="w-4 h-4 text-green-400" />}
+                        {item.type === 'player' && <Users className="w-4 h-4 text-yellow-400" />}
+                        {item.type === 'announcement' && <Megaphone className="w-4 h-4 text-primary" />}
+                        {item.type === 'highlight' && <Film className="w-4 h-4 text-red-400" />}
+                      </div>
+                      <span className="text-[10px] uppercase font-bold tracking-wider text-muted-foreground">{item.type}</span>
+                    </div>
+                    <span className="text-[10px] text-muted-foreground">{new Date(item.created_at).toLocaleString()}</span>
+                  </div>
+                  
+                  <h3 className="font-medium text-sm line-clamp-2 mb-4">{item.summary}</h3>
+                  
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleApprove(item)}
+                      disabled={isProcessing}
+                      className="flex-1 py-2 bg-primary/10 hover:bg-primary/20 text-primary rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all"
+                    >
+                      <Check className="w-3.5 h-3.5" /> Approve
+                    </button>
+                    <button
+                      onClick={() => handleReject(item)}
+                      disabled={isProcessing}
+                      className="flex-1 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 rounded-lg text-xs font-bold flex items-center justify-center gap-1 transition-all"
+                    >
+                      <X className="w-3.5 h-3.5" /> Reject
+                    </button>
+                  </div>
+                </div>
               </div>
+            ))}
+          </div>
+        )}
+
+        {/* Sticky Bulk Bar */}
+        {selectedIds.length > 0 && (
+          <div className="fixed bottom-24 left-1/2 -translate-x-1/2 w-[90%] max-w-lg glass border border-primary/30 rounded-2xl p-4 flex items-center justify-between shadow-2xl z-50 animate-in fade-in slide-in-from-bottom-4">
+            <div className="text-sm font-bold">
+              <span className="text-primary">{selectedIds.length}</span> items selected
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => setSelectedIds([])}
+                className="px-3 py-1.5 text-xs font-bold glass rounded-lg hover:bg-white/10"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleBulkAction("approve")}
+                className="px-3 py-1.5 text-xs font-bold bg-primary text-white rounded-lg hover:bg-primary/80"
+              >
+                Approve All
+              </button>
+              <button
+                onClick={() => handleBulkAction("reject")}
+                className="px-3 py-1.5 text-xs font-bold bg-red-500 text-white rounded-lg hover:bg-red-600"
+              >
+                Reject All
+              </button>
             </div>
           </div>
-        ))}
+        )}
       </div>
-    </div>
+    </AdminLayout>
+  );
+}
+
+import { SVGProps } from "react";
+
+// ... rest of the imports ...
+
+function CheckCircleIcon(props: SVGProps<SVGSVGElement>) {
+  return (
+    <svg {...props} xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"/><polyline points="22 4 12 14.01 9 11.01"/></svg>
   );
 }

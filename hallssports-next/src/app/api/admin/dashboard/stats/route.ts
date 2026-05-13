@@ -12,15 +12,18 @@ export async function GET(_request: Request) {
     let pending_announcements = 0;
     let unverified_items = 0;
     let highlights_published = 0;
+    let pending_matches = 0;
+    let pending_events = 0;
+    let approved_today = 0;
 
     // matches_today: count of matches where match_date is today
     try {
       const today = new Date().toISOString().split('T')[0];
-      const { count } = await supabase
-        .from("matches")
+      const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
+      const { count } = await (supabase as any).from("matches")
         .select("id", { count: "exact", head: true })
         .gte("match_date", today)
-        .lt("match_date", new Date(Date.now() + 86400000).toISOString().split('T')[0]); // tomorrow
+        .lt("match_date", tomorrow);
       matches_today = count ?? 0;
     } catch (e) {
       console.error("Error fetching matches_today:", e);
@@ -28,8 +31,7 @@ export async function GET(_request: Request) {
 
     // live_matches: count of matches with status = 'live'
     try {
-      const { count } = await supabase
-        .from("matches")
+      const { count } = await (supabase as any).from("matches")
         .select("id", { count: "exact", head: true })
         .eq("status", "live");
       live_matches = count ?? 0;
@@ -39,29 +41,16 @@ export async function GET(_request: Request) {
 
     // players_registered: count of all players
     try {
-      const { count } = await supabase
-        .from("players")
+      const { count } = await (supabase as any).from("players")
         .select("id", { count: "exact", head: true });
       players_registered = count ?? 0;
     } catch (e) {
       console.error("Error fetching players_registered:", e);
     }
 
-    // pending_announcements: count of announcements where is_verified = false
-    try {
-      const { count } = await supabase
-        .from("announcements")
-        .select("id", { count: "exact", head: true })
-        .eq("is_verified", false);
-      pending_announcements = count ?? 0;
-    } catch (e) {
-      console.error("Error fetching pending_announcements:", e);
-    }
-
     // highlights_published: count of highlights where is_verified = true
     try {
-      const { count } = await supabase
-        .from("highlights")
+      const { count } = await (supabase as any).from("highlights")
         .select("id", { count: "exact", head: true })
         .eq("is_verified", true);
       highlights_published = count ?? 0;
@@ -69,93 +58,74 @@ export async function GET(_request: Request) {
       console.error("Error fetching highlights_published:", e);
     }
 
-    // unverified_items: total rows where is_verified = false across matches, match_events, players, announcements, highlights
+    // approved_today: count of logs where action like 'APPROVE%' and created_at is today
     try {
-      // We'll fetch each table's unverified count and sum them
-      let totalUnverified = 0;
+      const today = new Date().toISOString().split('T')[0];
+      const { count } = await (supabase as any).from("admin_logs")
+        .select("id", { count: "exact", head: true })
+        .ilike("action", "APPROVE%")
+        .gte("created_at", today);
+      approved_today = count ?? 0;
+    } catch (e) {
+      // Fallback if admin_logs doesn't exist or is empty
+      approved_today = 0;
+    }
 
-      // matches: where is_verified = false (if column exists) or we can use a different condition?
-      // The prompt says "unverified_items – total rows where is_verified = false across matches, match_events, players, announcements, highlights"
-      // We assume each of these tables has an is_verified column.
-      // If a table doesn't have is_verified, we skip it or use an alternative? We'll try and catch.
-
+    // unverified counts
+    try {
       // matches
       try {
-        const { count } = await supabase
-          .from("matches")
+        const { count } = await (supabase as any).from("matches")
           .select("id", { count: "exact", head: true })
           .eq("is_verified", false);
-        totalUnverified += count ?? 0;
+        pending_matches = count ?? 0;
       } catch (e) {
-        // If the column doesn't exist, we ignore this table for unverified count
-        if (e instanceof Error) {
-          console.warn("matches table does not have is_verified column or error:", e.message);
-        } else {
-          console.warn("matches table does not have is_verified column or error:", e);
-        }
+        pending_matches = 0;
       }
 
       // match_events
       try {
-        const { count } = await supabase
-          .from("match_events")
+        const { count } = await (supabase as any).from("match_events")
           .select("id", { count: "exact", head: true })
           .eq("is_verified", false);
-        totalUnverified += count ?? 0;
+        pending_events = count ?? 0;
       } catch (e) {
-        if (e instanceof Error) {
-          console.warn("match_events table does not have is_verified column or error:", e.message);
-        } else {
-          console.warn("match_events table does not have is_verified column or error:", e);
-        }
+        pending_events = 0;
+      }
+
+      // announcements
+      try {
+        const { count } = await (supabase as any).from("announcements")
+          .select("id", { count: "exact", head: true })
+          .eq("is_verified", false);
+        pending_announcements = count ?? 0;
+      } catch (e) {
+        pending_announcements = 0;
       }
 
       // players
+      let pending_players = 0;
       try {
-        const { count } = await supabase
-          .from("players")
+        const { count } = await (supabase as any).from("players")
           .select("id", { count: "exact", head: true })
           .eq("is_verified", false);
-        totalUnverified += count ?? 0;
+        pending_players = count ?? 0;
       } catch (e) {
-        if (e instanceof Error) {
-          console.warn("players table does not have is_verified column or error:", e.message);
-        } else {
-          console.warn("players table does not have is_verified column or error:", e);
-        }
-      }
-
-      // announcements (we already have pending_announcements, but we'll add to total)
-      try {
-        const { count } = await supabase
-          .from("announcements")
-          .select("id", { count: "exact", head: true })
-          .eq("is_verified", false);
-        totalUnverified += count ?? 0;
-      } catch (e) {
-        if (e instanceof Error) {
-          console.warn("announcements table does not have is_verified column or error:", e.message);
-        } else {
-          console.warn("announcements table does not have is_verified column or error:", e);
-        }
+        pending_players = 0;
       }
 
       // highlights
+      let pending_highlights = 0;
       try {
-        const { count } = await supabase
-          .from("highlights")
+        const { count } = await (supabase as any).from("highlights")
           .select("id", { count: "exact", head: true })
           .eq("is_verified", false);
-        totalUnverified += count ?? 0;
+        pending_highlights = count ?? 0;
       } catch (e) {
-        if (e instanceof Error) {
-          console.warn("highlights table does not have is_verified column or error:", e.message);
-        } else {
-          console.warn("highlights table does not have is_verified column or error:", e);
-        }
+        pending_highlights = 0;
       }
 
-      unverified_items = totalUnverified;
+      unverified_items = pending_matches + pending_events + pending_announcements + pending_players + pending_highlights;
     } catch (e) {
       console.error("Error calculating unverified_items:", e);
     }
@@ -167,6 +137,9 @@ export async function GET(_request: Request) {
       pending_announcements,
       unverified_items,
       highlights_published,
+      pending_matches,
+      pending_events,
+      approved_today,
     });
   } catch (error) {
     console.error("Error fetching dashboard stats:", error);

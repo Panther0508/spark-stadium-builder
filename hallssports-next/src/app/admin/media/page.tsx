@@ -68,13 +68,12 @@ export default function MediaDashboardPage() {
           <Film className="w-8 h-8 text-primary" />
           <h1 className="text-2xl font-bold">Media Manager Dashboard</h1>
         </div>
-        
         <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
           <AdminCard className="p-6 text-center border-t-4 border-t-primary">
             <div className="text-3xl font-bold text-primary">{loadingStats ? "—" : stats.highlights}</div>
             <div className="text-sm text-muted-foreground">Highlights Published</div>
           </AdminCard>
-          
+
           <AdminCard className="p-6 text-center border-t-4 border-t-yellow-500">
             <div className="text-3xl font-bold text-yellow-500">{loadingStats ? "—" : stats.teamsMissingLogo.length}</div>
             <div className="text-sm text-muted-foreground">Teams Missing Logo</div>
@@ -86,8 +85,29 @@ export default function MediaDashboardPage() {
           </AdminCard>
         </div>
 
+        {/* Quick Links */}
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+          <Link href="/admin/media/players" className="p-4 glass rounded-xl hover:bg-white/10 border border-white/10 flex flex-col items-center gap-2 transition-all">
+            <Users className="w-6 h-6 text-primary" />
+            <span className="text-xs font-bold">Player Photos</span>
+          </Link>
+          <Link href="/admin/media/teams" className="p-4 glass rounded-xl hover:bg-white/10 border border-white/10 flex flex-col items-center gap-2 transition-all">
+            <Trophy className="w-6 h-6 text-primary" />
+            <span className="text-xs font-bold">Team Logos</span>
+          </Link>
+          <Link href="/admin/media/highlights" className="p-4 glass rounded-xl hover:bg-white/10 border border-white/10 flex flex-col items-center gap-2 transition-all">
+            <Film className="w-6 h-6 text-primary" />
+            <span className="text-xs font-bold">Highlights</span>
+          </Link>
+          <Link href="/admin/media/settings" className="p-4 glass rounded-xl hover:bg-white/10 border border-white/10 flex flex-col items-center gap-2 transition-all">
+            <ImageIcon className="w-6 h-6 text-primary" />
+            <span className="text-xs font-bold">Settings</span>
+          </Link>
+        </div>
+
         {/* Missing Images Audit */}
         <AdminCard className="p-6">
+        ...
           <div className="flex items-center gap-2 mb-6">
             <AlertCircle className="w-5 h-5 text-yellow-500" />
             <h2 className="text-xl font-bold">Content Audit: Missing Media</h2>

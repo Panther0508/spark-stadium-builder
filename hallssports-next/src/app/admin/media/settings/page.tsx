@@ -22,7 +22,10 @@ type EditingPerson = Person & { _index?: number };
 
 type Settings = {
   tournament_name: string;
+  tournament_logo: string;
   about_description: string;
+  pantero_url: string;
+  feedback_url: string;
   organizers: Person[];
   contributors: Person[];
 };
@@ -33,7 +36,10 @@ export default function SettingsPage() {
   
   const [settings, setSettings] = useState<Settings>({
     tournament_name: "HallsSports Tournament",
+    tournament_logo: "",
     about_description: "",
+    pantero_url: "https://pantero.vercel.app",
+    feedback_url: "",
     organizers: [],
     contributors: [],
   });
@@ -49,11 +55,7 @@ export default function SettingsPage() {
       try {
         const data = await adminSelect('settings') as Array<{ key: string; value: string }>;
         if (data) {
-const settingsObj = data.reduce((acc, s) => {
-             if (s.key === 'pantero_url') {
-               // Skip: Pantero URL is managed via environment variable, not editable by admins
-               return acc;
-             }
+          const settingsObj = data.reduce((acc, s) => {
              if (s.key === 'organizers' || s.key === 'contributors') {
                try {
                  acc[s.key] = JSON.parse(s.value);
@@ -64,7 +66,7 @@ const settingsObj = data.reduce((acc, s) => {
                acc[s.key] = s.value;
              }
              return acc;
-           }, {} as Record<string, unknown>);
+           }, {} as Record<string, any>);
           setSettings(prev => ({ ...prev, ...settingsObj }));
         }
       } catch {
@@ -81,7 +83,10 @@ const settingsObj = data.reduce((acc, s) => {
     try {
       const updates = [
         { key: "tournament_name", value: settings.tournament_name },
+        { key: "tournament_logo", value: settings.tournament_logo },
         { key: "about_description", value: settings.about_description },
+        { key: "pantero_url", value: settings.pantero_url },
+        { key: "feedback_url", value: settings.feedback_url },
         { key: "organizers", value: JSON.stringify(settings.organizers) },
         { key: "contributors", value: JSON.stringify(settings.contributors) },
       ];
@@ -163,26 +168,60 @@ const settingsObj = data.reduce((acc, s) => {
           <button
             onClick={handleSave}
             disabled={saving}
-            className="px-4 py-2 bg-primary text-primary-foreground rounded-lg disabled:opacity-50 min-h-[44px]"
+            className="px-6 py-2 bg-primary text-primary-foreground rounded-xl font-bold shadow-lg shadow-primary/20 disabled:opacity-50 min-h-[44px]"
           >
-            Save Changes
+            {saving ? "Saving..." : "Save Changes"}
           </button>
         </div>
 
-        <AdminCard className="p-6 space-y-4">
-          <AdminFormField label="Tournament Name">
-            <input
-              value={settings.tournament_name}
-              onChange={e => setSettings({ ...settings, tournament_name: e.target.value })}
-              className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20"
-            />
-          </AdminFormField>
+        <AdminCard className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            <div className="space-y-4">
+              <AdminFormField label="Tournament Name">
+                <input
+                  value={settings.tournament_name}
+                  onChange={e => setSettings({ ...settings, tournament_name: e.target.value })}
+                  className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none"
+                  placeholder="e.g. HallsSports 2025"
+                />
+              </AdminFormField>
+
+              <AdminFormField label="Tournament Logo">
+                <ImageUpload
+                  label="Logo"
+                  value={settings.tournament_logo}
+                  onUpload={(url) => setSettings({ ...settings, tournament_logo: url })}
+                />
+              </AdminFormField>
+            </div>
+
+            <div className="space-y-4">
+               <AdminFormField label="Pantero URL">
+                <input
+                  value={settings.pantero_url}
+                  onChange={e => setSettings({ ...settings, pantero_url: e.target.value })}
+                  className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none"
+                  placeholder="https://pantero.vercel.app"
+                />
+              </AdminFormField>
+
+              <AdminFormField label="Feedback Form URL">
+                <input
+                  value={settings.feedback_url}
+                  onChange={e => setSettings({ ...settings, feedback_url: e.target.value })}
+                  className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none"
+                  placeholder="https://forms.gle/..."
+                />
+              </AdminFormField>
+            </div>
+          </div>
 
           <AdminFormField label="About Description">
             <textarea
               value={settings.about_description}
               onChange={e => setSettings({ ...settings, about_description: e.target.value })}
-              className="w-full min-h-32 px-3 py-2 rounded-lg bg-white/5 border border-white/20"
+              className="w-full min-h-32 px-3 py-2 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none resize-none"
+              placeholder="Tell us about the tournament..."
             />
           </AdminFormField>
         </AdminCard>
@@ -197,9 +236,9 @@ const settingsObj = data.reduce((acc, s) => {
           <div className="space-y-3">
             {settings.organizers.map((person, index) => (
               <div key={index} className="glass rounded-xl p-4 flex items-center gap-3">
-<div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
+                 <div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
                    {person.photo_url ? (
-                     <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" /* eslint-disable-line @next/next/no-img-element */ />
+                     <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" />
                    ) : (
                      <User className="w-5 h-5 text-muted-foreground m-auto" />
                    )}
@@ -210,7 +249,7 @@ const settingsObj = data.reduce((acc, s) => {
                 </div>
                 <div className="flex gap-1">
                   <button
-                    onClick={() => editPerson(person, index)}
+                    onClick={() => { setCurrentPanel("organizers"); editPerson(person, index); }}
                     className="p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px]"
                   >
                     <Upload className="w-4 h-4" />
@@ -226,7 +265,7 @@ const settingsObj = data.reduce((acc, s) => {
             ))}
             <button
               onClick={() => { setCurrentPanel("organizers"); addPerson(); }}
-              className="w-full min-h-[44px] px-4 py-2 glass rounded-lg flex items-center justify-center gap-2"
+              className="w-full min-h-[44px] px-4 py-2 glass rounded-lg flex items-center justify-center gap-2 border border-white/10 hover:bg-white/5"
             >
               <Plus className="w-4 h-4" />
               Add Organizer
@@ -244,9 +283,9 @@ const settingsObj = data.reduce((acc, s) => {
           <div className="space-y-3">
             {settings.contributors.map((person, index) => (
               <div key={index} className="glass rounded-xl p-4 flex items-center gap-3">
-<div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
+                 <div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
                    {person.photo_url ? (
-                     <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" /* eslint-disable-line @next/next/no-img-element */ />
+                     <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" />
                    ) : (
                      <User className="w-5 h-5 text-muted-foreground m-auto" />
                    )}
@@ -257,7 +296,7 @@ const settingsObj = data.reduce((acc, s) => {
                 </div>
                 <div className="flex gap-1">
                   <button
-                    onClick={() => editPerson(person, index)}
+                    onClick={() => { setCurrentPanel("contributors"); editPerson(person, index); }}
                     className="p-2 rounded-lg hover:bg-white/10 min-h-[44px] min-w-[44px]"
                   >
                     <Upload className="w-4 h-4" />
@@ -273,7 +312,7 @@ const settingsObj = data.reduce((acc, s) => {
             ))}
             <button
               onClick={() => { setCurrentPanel("contributors"); addPerson(); }}
-              className="w-full min-h-[44px] px-4 py-2 glass rounded-lg flex items-center justify-center gap-2"
+              className="w-full min-h-[44px] px-4 py-2 glass rounded-lg flex items-center justify-center gap-2 border border-white/10 hover:bg-white/5"
             >
               <Plus className="w-4 h-4" />
               Add Contributor
@@ -295,7 +334,7 @@ const settingsObj = data.reduce((acc, s) => {
                 type="text"
                 value={personForm.name}
                 onChange={e => setPersonForm({ ...personForm, name: e.target.value })}
-                className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20"
+                className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none"
                 placeholder="Full name"
               />
             </div>
@@ -305,7 +344,7 @@ const settingsObj = data.reduce((acc, s) => {
                 type="text"
                 value={personForm.role}
                 onChange={e => setPersonForm({ ...personForm, role: e.target.value })}
-                className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20"
+                className="w-full h-12 px-3 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none"
                 placeholder="e.g., Tournament Director"
               />
             </div>

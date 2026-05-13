@@ -21,6 +21,7 @@ type Match = {
   venue?: string;
   image_url?: string;
   is_verified?: boolean;
+  featured?: boolean;
   community_visible?: boolean;
   home_team?: { name: string };
   away_team?: { name: string };
@@ -99,12 +100,17 @@ useEffect(() => {
 
   const handleSave = async () => {
     try {
+      if (!formData.home_team_id || !formData.away_team_id || !formData.match_date) {
+        throw new Error("Missing required fields");
+      }
+
       const data = {
         home_team_id: formData.home_team_id,
         away_team_id: formData.away_team_id,
         match_date: new Date(formData.match_date).toISOString(),
         venue: formData.venue,
         image_url: formData.image_url,
+        featured: formData.featured,
         community_visible: formData.community_visible,
       };
 
@@ -139,6 +145,20 @@ useEffect(() => {
       addToast({ type: "error", title: message });
     }
   };
+
+   const handleEdit = (match: Match) => {
+     setEditingMatch(match);
+     setFormData({
+       home_team_id: match.home_team_id,
+       away_team_id: match.away_team_id,
+       match_date: new Date(match.match_date).toISOString().slice(0, 16),
+       venue: match.venue || "",
+       image_url: match.image_url || "",
+       featured: match.featured || false,
+       community_visible: match.community_visible || false,
+     });
+     setModalOpen(true);
+   };
 
    const handleRetry = () => {
      setError(null);
@@ -258,7 +278,7 @@ useEffect(() => {
                       className="w-full h-48 object-cover rounded-lg mb-4"
                     />
                   ) : (
-                  <div className="w-full h-48 flex items-center justify-center bg-black/20 rounded-lg">
+                  <div className="w-full h-48 flex items-center justify-center bg-black/20 rounded-lg mb-4">
                     <span className="text-muted-foreground">No Image</span>
                   </div>
                 )}
@@ -278,10 +298,26 @@ useEffect(() => {
                   </div>
                 )}
 
-                <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center justify-between mb-3">
                   <span className={`px-2 py-1 text-xs rounded-full ${match.status === 'live' ? 'bg-green-500/20 text-green-400' : match.status === 'finished' ? 'bg-red-500/20 text-red-400' : 'bg-blue-500/20 text-blue-400'}`}>
                     {match.status.charAt(0).toUpperCase() + match.status.slice(1)}
                   </span>
+                  {match.featured && <span className="text-[10px] bg-primary/20 text-primary px-1.5 py-0.5 rounded uppercase font-bold">Featured</span>}
+                </div>
+
+                <div className="flex gap-2">
+                  <button
+                    onClick={() => handleEdit(match)}
+                    className="flex-1 py-2 text-xs border border-white/10 rounded-lg hover:bg-white/5 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  <a
+                    href={`/admin/scout/live?matchId=${match.id}`}
+                    className="flex-1 py-2 text-xs bg-primary/10 text-primary text-center rounded-lg hover:bg-primary/20 transition-colors"
+                  >
+                    Live Score
+                  </a>
                 </div>
               </div>
             ))}
@@ -348,19 +384,31 @@ useEffect(() => {
                />
              </AdminFormField>
 
-            <div className="flex items-center gap-2 py-2">
-              <input
-                type="checkbox"
-                id="community_visible"
-                checked={formData.community_visible}
-                onChange={e => setFormData({ ...formData, community_visible: e.target.checked })}
-                className="w-4 h-4 rounded border-white/20 bg-white/5"
-              />
-              <label htmlFor="community_visible" className="text-sm font-medium">Visible to Community (Chat Selection)</label>
+            <div className="grid grid-cols-2 gap-4 py-2">
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="featured"
+                  checked={formData.featured}
+                  onChange={e => setFormData({ ...formData, featured: e.target.checked })}
+                  className="w-4 h-4 rounded border-white/20 bg-white/5"
+                />
+                <label htmlFor="featured" className="text-sm font-medium">Featured Match</label>
+              </div>
+              <div className="flex items-center gap-2">
+                <input
+                  type="checkbox"
+                  id="community_visible"
+                  checked={formData.community_visible}
+                  onChange={e => setFormData({ ...formData, community_visible: e.target.checked })}
+                  className="w-4 h-4 rounded border-white/20 bg-white/5"
+                />
+                <label htmlFor="community_visible" className="text-sm font-medium">Community Visible</label>
+              </div>
             </div>
             
-            <button onClick={handleSave} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">
-              {editingMatch ? "Update" : "Save"}
+            <button onClick={handleSave} className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-bold shadow-lg shadow-primary/20 hover:scale-[1.01] active:scale-[0.99] transition-all">
+              {editingMatch ? "Update Match" : "Create Match"}
             </button>
           </div>
         </AdminModal>

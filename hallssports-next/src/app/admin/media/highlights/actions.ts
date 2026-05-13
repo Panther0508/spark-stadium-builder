@@ -9,6 +9,7 @@ export async function getHighlights() {
   const { data } = await supabase
     .from('highlights')
     .select('*')
+    .order('order_index', { ascending: true })
     .order('created_at', { ascending: false });
 
   return (data || []) as Array<{
@@ -19,6 +20,7 @@ export async function getHighlights() {
     media_type: 'image' | 'video';
     is_verified?: boolean;
     created_at: string;
+    order_index?: number;
   }>;
 }
 

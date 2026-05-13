@@ -27,6 +27,7 @@ export default function AnnouncementsPage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
+  const [editingAnnouncement, setEditingAnnouncement] = useState<Announcement | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     body: "",
@@ -61,31 +62,45 @@ const loadData = useCallback(async () => {
 
   const handleSave = async () => {
     try {
-      const res = await fetch('/api/admin/announcement-create', {
+      const endpoint = editingAnnouncement ? '/api/admin/announcement-update' : '/api/admin/announcement-create';
+      const body = {
+        id: editingAnnouncement?.id,
+        title: formData.title,
+        body: sanitizeHtml(formData.body),
+        image_url: formData.image_url,
+      };
+
+      const res = await fetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          title: formData.title,
-          body: sanitizeHtml(formData.body),
-          image_url: formData.image_url,
-        })
+        body: JSON.stringify(body)
       });
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || 'Failed to create announcement');
+        throw new Error(error.error || 'Failed to save announcement');
       }
       
-      addToast({ type: "success", title: "Announcement created" });
+      addToast({ type: "success", title: editingAnnouncement ? "Announcement updated" : "Announcement created" });
       setModalOpen(false);
+      setEditingAnnouncement(null);
       setFormData({ title: "", body: "", image_url: "" });
-      // Data will be refreshed by polling, but we can also trigger an immediate load
       loadData();
     } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to create announcement";
+      const message = err instanceof Error ? err.message : "Failed to save announcement";
       setError(message);
       addToast({ type: "error", title: message });
     }
+  };
+
+  const handleEdit = (ann: Announcement) => {
+    setEditingAnnouncement(ann);
+    setFormData({
+      title: ann.title,
+      body: ann.body,
+      image_url: ann.image_url || "",
+    });
+    setModalOpen(true);
   };
 
   const handleRetry = () => {
@@ -144,7 +159,11 @@ const loadData = useCallback(async () => {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Announcements</h1>
           <button
-            onClick={() => setModalOpen(true)}
+            onClick={() => {
+              setEditingAnnouncement(null);
+              setFormData({ title: "", body: "", image_url: "" });
+              setModalOpen(true);
+            }}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -158,9 +177,9 @@ const loadData = useCallback(async () => {
               <p className="text-muted-foreground">No announcements created yet</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {announcements.map(announcement => (
-                <div key={announcement.id} className="glass rounded-xl p-4 border border-white/20">
+                <div key={announcement.id} className="glass rounded-xl p-4 border border-white/20 flex flex-col">
 {announcement.image_url ? (
                       <img
                         src={announcement.image_url}
@@ -168,26 +187,32 @@ const loadData = useCallback(async () => {
                         className="w-full h-48 object-cover rounded-lg mb-4"
                       />
                     ) : (
-                    <div className="w-full h-48 flex items-center justify-center bg-black/20 rounded-lg">
-                      <span className="text-muted-foreground">No Image</span>
+                    <div className="w-full h-48 flex items-center justify-center bg-black/20 rounded-lg mb-4">
+                      <span className="text-muted-foreground text-xs italic">No Banner Image</span>
                     </div>
                   )}
                   
-                  <div className="mb-3">
-                    <div className="font-medium text-lg">{announcement.title}</div>
-                    <div className="text-xs text-muted-foreground">
+                  <div className="mb-2">
+                    <div className="font-bold text-lg line-clamp-1">{announcement.title}</div>
+                    <div className="text-[10px] text-muted-foreground">
                       {new Date(announcement.created_at).toLocaleString()}
                     </div>
                   </div>
                   
-                  <div className="text-sm text-muted-foreground mb-3">
+                  <div className="text-sm text-muted-foreground mb-4 line-clamp-3 flex-1">
                     {announcement.body}
                   </div>
                   
-                  <div className="flex items-center gap-2">
-                    <span className={`px-2 py-1 text-xs rounded-full ${announcement.is_verified ? 'bg-green-500/20 text-green-400' : 'bg-gray-500/20 text-gray-400'}`}>
+                  <div className="flex items-center justify-between">
+                    <span className={`px-2 py-0.5 text-[10px] rounded-full uppercase font-bold ${announcement.is_verified ? 'bg-green-500/20 text-green-400' : 'bg-yellow-500/20 text-yellow-400'}`}>
                       {announcement.is_verified ? "Verified" : "Pending"}
                     </span>
+                    <button
+                      onClick={() => handleEdit(announcement)}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Edit Announcement
+                    </button>
                   </div>
                 </div>
               ))}
@@ -199,9 +224,10 @@ const loadData = useCallback(async () => {
           isOpen={modalOpen}
           onClose={() => {
             setModalOpen(false);
+            setEditingAnnouncement(null);
             setFormData({ title: "", body: "", image_url: "" });
           }}
-          title="New Announcement"
+          title={editingAnnouncement ? "Edit Announcement" : "New Announcement"}
           size="lg"
         >
           <div className="space-y-4">
@@ -210,6 +236,7 @@ const loadData = useCallback(async () => {
                 value={formData.title}
                 onChange={e => setFormData({ ...formData, title: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
+                placeholder="Announcement Title"
               />
             </AdminFormField>
             
@@ -218,6 +245,7 @@ const loadData = useCallback(async () => {
                 value={formData.body}
                 onChange={e => setFormData({ ...formData, body: e.target.value })}
                 className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20 min-h-32"
+                placeholder="Write your announcement content here..."
               />
             </AdminFormField>
             
@@ -229,8 +257,8 @@ const loadData = useCallback(async () => {
                />
              </AdminFormField>
             
-            <button onClick={handleSave} className="px-4 py-2 bg-primary text-primary-foreground rounded-lg">
-              Publish
+            <button onClick={handleSave} className="w-full py-3 bg-primary text-primary-foreground rounded-lg font-bold">
+              {editingAnnouncement ? "Update Announcement" : "Publish Announcement"}
             </button>
           </div>
         </AdminModal>

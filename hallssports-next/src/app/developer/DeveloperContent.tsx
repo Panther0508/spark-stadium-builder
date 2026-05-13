@@ -1,4 +1,4 @@
-/* eslint-disable react/no-unescaped-entities, react-hooks/purity */
+ 
 "use client";
 
 import { useState, useEffect } from "react";
@@ -8,7 +8,7 @@ import { PageShell } from "@/components/PageShell";
 import { GlassCard } from "@/components/GlassCard";
 import { Skeleton } from "@/components/Skeleton";
 import { GlassModal } from "@/components/GlassModal";
-import { RefreshCw, AlertOctagon, Database, Activity, Shield } from "lucide-react";
+import { RefreshCw, AlertOctagon, Database, Activity, Shield, ToggleLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
 const DEV_KEY = "HallsSports_Dev_2025_Secure";
@@ -34,12 +34,6 @@ interface SystemData {
   supabaseConnected: boolean;
 }
 
-interface AdminLog {
-  action: string;
-  time: string;
-  type: string;
-}
-
 interface DevData {
   status: string;
   activeUsers: number;
@@ -47,7 +41,6 @@ interface DevData {
   lastDeployment: string;
   pages: PageData[];
   ctaClicks: CTAData[];
-  adminLogs: AdminLog[];
   system: SystemData;
 }
 
@@ -56,6 +49,13 @@ interface InfraMetrics {
   databaseSizeMB: number;
   connectionCount: number | null;
   status: 'green' | 'orange' | 'red';
+}
+
+interface FeatureFlag {
+  id: string;
+  name: string;
+  enabled: boolean;
+  description: string;
 }
 
 const MOCK_DEV_DATA: DevData = {
@@ -83,12 +83,6 @@ const MOCK_DEV_DATA: DevData = {
     { name: "Community Chat Opened", clicks: 1560, trend: "up", percent: 8 },
     { name: "Player Profile Viewed", clicks: 4200, trend: "up", percent: 15 },
   ],
-  adminLogs: [
-    { action: "Data Scout added goal (Emeka Okafor, 34&apos;)", time: "10 min ago", type: "scout" },
-    { action: "Verifier approved match Rangers vs Panthers", time: "25 min ago", type: "verifier" },
-    { action: "Data Scout corrected scoreline", time: "1h ago", type: "scout" },
-    { action: "Verifier locked live stats", time: "2h ago", type: "verifier" },
-  ],
   system: {
     apiLatency: 87,
     errorCount: 2,
@@ -110,8 +104,14 @@ export default function DeveloperContent() {
    const [backupModal, setBackupModal] = useState(false);
    const [lastBackupTime, setLastBackupTime] = useState<number | null>(null);
    const [data, setData] = useState<DevData | null>(null);
+   const [realLogs, setRealLogs] = useState<any[]>([]);
    const [infraMetrics, setInfraMetrics] = useState<InfraMetrics | null>(null);
    const [metricsLoading, setMetricsLoading] = useState(true);
+   const [flags, setFeatureFlags] = useState<FeatureFlag[]>([
+     { id: "chat", name: "Community Chat", enabled: true, description: "Enable real-time match chat for users" },
+     { id: "realtime", name: "Live Stats Realtime", enabled: true, description: "Stream match updates via Supabase Realtime" },
+     { id: "onboarding", name: "Onboarding Flow", enabled: false, description: "Show welcome tour to new visitors" },
+   ]);
 
    // Check backup status from localStorage
    const checkBackupStatus = () => {
@@ -128,6 +128,12 @@ export default function DeveloperContent() {
          setAccess(true);
          setData(MOCK_DEV_DATA);
          checkBackupStatus();
+         
+         // Fetch real logs
+         fetch("/api/admin/dashboard/recent")
+           .then(res => res.json())
+           .then(logs => setRealLogs(Array.isArray(logs) ? logs : []))
+           .catch(console.error);
        }
        setLoading(false);
      }, 10);
@@ -176,7 +182,10 @@ export default function DeveloperContent() {
     return modifier * a.name.localeCompare(b.name);
   });
 
-  // Format timestamp as "X hours/minutes ago"
+  const toggleFlag = (id: string) => {
+    setFeatureFlags(prev => prev.map(f => f.id === id ? { ...f, enabled: !f.enabled } : f));
+  };
+
   const formatTimeAgo = (timestamp: number) => {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
     if (seconds < 60) return "just now";
@@ -218,11 +227,9 @@ export default function DeveloperContent() {
     );
   }
 
-
-
   return (
     <PageShell title="Developer Console">
-      <div className="space-y-6">
+      <div className="space-y-6 pb-20">
         {/* Summary Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <GlassCard className="p-4 text-center">
@@ -304,58 +311,34 @@ export default function DeveloperContent() {
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              Unable to load infrastructure metrics. (Future improvement)
+              Unable to load infrastructure metrics.
             </p>
           )}
          </GlassCard>
 
-         {/* Data Integrity / Backup Reminder */}
+         {/* Feature Flags */}
          <GlassCard className="p-4">
-           <h3 className="font-bold mb-4 flex items-center gap-2">
-             <Shield className="h-5 w-5" />
-             Data Integrity
-           </h3>
-           <div className="flex items-center justify-between p-4 rounded-lg bg-white/5 border border-white/10">
-             <div>
-               {lastBackupTime ? (
-                 <div>
-                   <div className="text-sm font-medium text-green-500">
-                     Last backup: {formatTimeAgo(lastBackupTime)}
-                   </div>
-                   <div className="text-xs text-muted-foreground mt-1">
-                     Regular backups are still recommended.
-                   </div>
-                 </div>
-               ) : (
-                 <div>
-                   <div className="text-sm font-medium text-yellow-500">
-                     No backup taken in the last 24 hours
-                   </div>
-                   <div className="text-xs text-muted-foreground mt-1">
-                     Please run scripts/backup-db.sh immediately.
-                   </div>
-                 </div>
-               )}
-             </div>
-             <div className="flex items-center gap-2">
-               <button
-                 onClick={() => setBackupModal(true)}
-                 className="text-xs px-3 py-1.5 bg-white/10 hover:bg-white/20 rounded-lg transition-colors"
-               >
-                 How to Backup
-               </button>
-               <button
-                 onClick={() => {
-                   localStorage.setItem("hallsports_last_backup", Date.now().toString());
-                   checkBackupStatus();
-                 }}
-                 className="text-xs px-3 py-1.5 bg-primary text-primary-foreground rounded-lg hover:bg-primary/90 transition-colors"
-               >
-                 Mark Backup Complete
-               </button>
-             </div>
-           </div>
-         </GlassCard>
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <ToggleLeft className="h-5 w-5 text-primary" />
+            Feature Flags (Runtime Only)
+          </h3>
+          <div className="space-y-3">
+            {flags.map(flag => (
+              <div key={flag.id} className="p-4 glass rounded-xl border border-white/5 flex items-center justify-between">
+                <div>
+                  <div className="font-bold text-sm">{flag.name}</div>
+                  <div className="text-[10px] text-muted-foreground">{flag.description}</div>
+                </div>
+                <button 
+                  onClick={() => toggleFlag(flag.id)}
+                  className={`w-12 h-6 rounded-full transition-all relative ${flag.enabled ? 'bg-primary' : 'bg-white/10'}`}
+                >
+                  <div className={`absolute top-1 w-4 h-4 rounded-full bg-white transition-all ${flag.enabled ? 'left-7' : 'left-1'}`} />
+                </button>
+              </div>
+            ))}
+          </div>
+        </GlassCard>
 
          {/* Bug Scanner */}
          <GlassCard className="p-4">
@@ -397,24 +380,6 @@ export default function DeveloperContent() {
            )}
          </GlassCard>
 
-        {/* System Monitor */}
-        <GlassCard className="p-4">
-          <h3 className="font-bold mb-4">System Monitor</h3>
-          <div className="grid grid-cols-2 gap-4">
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">Supabase</div>
-              <div className="flex items-center gap-2">
-                <span className="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-                <span className="text-sm font-medium">Connected</span>
-              </div>
-            </div>
-            <div>
-              <div className="text-xs text-muted-foreground mb-1">API Latency</div>
-              <div className="text-sm font-medium">{data.system.apiLatency} ms avg</div>
-            </div>
-          </div>
-        </GlassCard>
-
         {/* Page Performance Table */}
         <GlassCard className="p-4">
           <div className="flex items-center justify-between mb-4">
@@ -441,58 +406,32 @@ export default function DeveloperContent() {
           </div>
         </GlassCard>
 
-        {/* CTA Tracking */}
-        <GlassCard className="p-4">
-          <h3 className="font-bold mb-4">CTA Tracking</h3>
-          <div className="grid grid-cols-2 gap-4">
-            {data.ctaClicks.map((cta, idx) => (
-              <div key={idx} className="p-3 rounded-lg bg-white/5">
-                <div className="font-medium mb-1">{cta.name}</div>
-                <div className="text-sm text-muted-foreground">
-                  {cta.clicks.toLocaleString()} clicks
-                  <span
-                    className={`ml-2 text-xs ${cta.trend === "up" ? "text-green-500" : "text-red-500"}`}
-                  >
-                    {cta.trend === "up" ? "⬆" : "⬇"} {cta.percent}%
-                  </span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </GlassCard>
-
         {/* Admin Activity */}
         <GlassCard className="p-4">
-          <h3 className="font-bold mb-4">Admin Activity</h3>
+          <h3 className="font-bold mb-4 flex items-center gap-2">
+            <Activity className="h-5 w-5 text-primary" />
+            Real Admin Activity
+          </h3>
           <div className="space-y-2">
-            {data.adminLogs.map((log, idx) => (
-              <div key={idx} className="text-sm border-b border-white/10 pb-2 last:border-0">
-                <div className="flex justify-between">
-                  <span>{log.action}</span>
-                  <span className="text-muted-foreground">{log.time}</span>
+            {realLogs.length === 0 ? (
+               <p className="text-xs text-muted-foreground italic">No recent activity logged.</p>
+            ) : (
+              realLogs.map((log, idx) => (
+                <div key={idx} className="text-sm border-b border-white/10 pb-2 last:border-0 pt-2 first:pt-0">
+                  <div className="flex justify-between items-start gap-4">
+                    <span className="font-medium text-xs leading-relaxed">{log.summary}</span>
+                    <span className="text-[10px] text-muted-foreground whitespace-nowrap">{new Date(log.timestamp).toLocaleTimeString()}</span>
+                  </div>
+                  <div className="text-[10px] text-primary mt-1 uppercase font-bold tracking-wider">{log.type}</div>
                 </div>
-                <div className="text-xs text-primary mt-1 capitalize">{log.type}</div>
-              </div>
-            ))}
+              ))
+            )}
           </div>
         </GlassCard>
+      </div>
 
-        {/* Error Details Modal (unchanged) */}
-        <GlassModal open={errorModal} onClose={() => setErrorModal(false)} title="Error Details">
-          <div className="space-y-3 text-sm">
-            <div className="glass p-3 rounded-lg">
-              <p className="font-mono text-xs">TypeError: Cannot read property 'x' of undefined</p>
-              <p className="text-muted-foreground mt-1">app/home/page.tsx:123 - 7h ago</p>
-            </div>
-            <div className="glass p-3 rounded-lg">
-              <p className="font-mono text-xs">Warning: Image without alt text</p>
-              <p className="text-muted-foreground mt-1">app/matches/page.tsx:45 - 2d ago</p>
-            </div>
-          </div>
-        </GlassModal>
-
-        {/* Backup How-To Modal */}
-        <GlassModal open={backupModal} onClose={() => setBackupModal(false)} title="How to Backup Your Database">
+      {/* Backup How-To Modal */}
+      <GlassModal open={backupModal} onClose={() => setBackupModal(false)} title="How to Backup Your Database">
           <div className="space-y-4 text-sm">
             <p className="text-muted-foreground">
               Supabase free tier does not include automatic backups. Run this script regularly to protect your data.
@@ -528,24 +467,13 @@ $env:SUPABASE_DATABASE_URL="your-connection-uri"`}
               </pre>
             </div>
 
-            <div className="space-y-2">
-              <h4 className="font-medium">Step 4: Verify the backup</h4>
-              <p className="text-xs text-muted-foreground">
-                Check the <code className="px-1 py-0.5 rounded bg-white/10">backups/</code> folder for a file named
-                <code className="px-1 py-0.5 rounded bg-white/10 ml-1">hallsports_backup_YYYYMMDD_HHMMSS.sql</code>.
-                Store it somewhere safe (cloud storage or external drive).
-              </p>
-            </div>
-
             <div className="p-3 rounded-lg bg-yellow-500/10 border border-yellow-500/30">
               <p className="text-xs text-yellow-500">
                 <strong>Important:</strong> Backups contain all your data. Do not commit them to git.
-                Restore with: <code className="px-1 py-0.5 rounded bg-white/10">pg_restore -d $SUPABASE_DATABASE_URL backups/hallsports_backup_YYYYMMDD_HHMMSS.sql</code>
               </p>
             </div>
           </div>
         </GlassModal>
-      </div>
     </PageShell>
   );
 }
