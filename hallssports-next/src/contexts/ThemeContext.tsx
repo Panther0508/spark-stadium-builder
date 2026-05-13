@@ -35,9 +35,18 @@ function getStoredReduceMotion(): boolean {
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(getStoredTheme);
-  const [fontSize, setFontSizeState] = useState<FontSize>(getStoredFontSize);
-  const [reduceMotion, setReduceMotionState] = useState(getStoredReduceMotion);
+  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
+  const [fontSize, setFontSizeState] = useState<FontSize>("medium");
+  const [reduceMotion, setReduceMotionState] = useState<boolean>(false);
+
+  useEffect(() => {
+    // Initialize from localStorage only on client
+    if (typeof window !== "undefined") {
+      setThemeState(getStoredTheme());
+      setFontSizeState(getStoredFontSize());
+      setReduceMotionState(getStoredReduceMotion());
+    }
+  }, []);
 
   useEffect(() => {
     const root = document.documentElement;
@@ -61,17 +70,23 @@ export function ThemeProvider({ children }: { children: ReactNode }) {
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
-    localStorage.setItem("hallssports_theme", newTheme);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("hallssports_theme", newTheme);
+    }
   };
 
   const setFontSize = (newSize: FontSize) => {
     setFontSizeState(newSize);
-    localStorage.setItem("hallssports_fontSize", newSize);
+    if (typeof window !== "undefined") {
+      localStorage.setItem("hallssports_fontSize", newSize);
+    }
   };
 
   const setReduceMotion = (reduce: boolean) => {
     setReduceMotionState(reduce);
-    localStorage.setItem("hallssports_reduceMotion", String(reduce));
+    if (typeof window !== "undefined") {
+      localStorage.setItem("hallssports_reduceMotion", String(reduce));
+    }
   };
 
   return (

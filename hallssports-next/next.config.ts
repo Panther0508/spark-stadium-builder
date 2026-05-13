@@ -11,7 +11,7 @@ const nextConfig: NextConfig = {
          headers: [
            {
              key: "Content-Security-Policy",
-             value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline'; img-src 'self' https://res.cloudinary.com https://*.supabase.co data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.cloudinary.com; frame-src 'self' https://www.youtube-nocookie.com;",
+             value: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://upload-widget.cloudinary.com; style-src 'self' 'unsafe-inline'; img-src 'self' https://res.cloudinary.com https://*.supabase.co data:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.cloudinary.com; frame-src 'self' https://www.youtube-nocookie.com;",
            },
            { key: "Strict-Transport-Security", value: "max-age=63072000; includeSubDomains; preload" },
            { key: "X-Content-Type-Options", value: "nosniff" },
