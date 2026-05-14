@@ -81,7 +81,7 @@ export default function VerifierDashboard() {
           approvedToday: data.approved_today || 0,
         });
       } catch (_err) {
-        const message = err instanceof Error ? err.message : "Unknown error";
+        const message = _err instanceof Error ? _err.message : "Unknown error";
         setError(message);
         addToast({ type: "error", title: message });
       } finally {
@@ -99,7 +99,7 @@ export default function VerifierDashboard() {
         const data: RecentActivity[] = await res.json();
         setRecentActivity(data);
       } catch (_err) {
-        console.warn("Failed to fetch recent activity", err);
+        console.warn("Failed to fetch recent activity", _err);
       }
     };
     fetchRecent();
