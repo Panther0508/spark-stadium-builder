@@ -47,6 +47,11 @@ export default function TeamLogosPage() {
   const handleSave = async () => {
     if (!editingTeamId) return;
     
+    if (!uploadedLogoUrl) {
+      addToast({ type: "error", title: "Please upload a team logo first" });
+      return;
+    }
+    
     try {
       const res = await fetch('/api/admin/team-update', {
         method: 'POST',

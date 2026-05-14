@@ -66,8 +66,8 @@ export default function SettingsPage() {
                acc[s.key] = s.value;
              }
              return acc;
-           }, {} as Record<string, any>);
-          setSettings(prev => ({ ...prev, ...settingsObj }));
+           }, {} as Record<string, string | Person[]>);
+          setSettings(prev => ({ ...prev, ...settingsObj as Settings }));
         }
       } catch {
         // Settings may not exist yet; ignore

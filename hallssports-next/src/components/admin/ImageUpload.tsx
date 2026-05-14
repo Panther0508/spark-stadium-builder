@@ -46,8 +46,12 @@ export default function ImageUpload({ value, currentUrl, onUpload, label }: Imag
 
 try {
        const url = await uploadToCloudinary(file);
-       setPreviewUrl(url);
-       onUpload(url);
+       if (url) {
+         setPreviewUrl(url);
+         onUpload(url);
+       } else {
+         throw new Error('No URL returned from Cloudinary');
+       }
      } catch {
        showToast('Upload failed. Please try again.');
      } finally {

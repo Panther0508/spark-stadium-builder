@@ -20,53 +20,53 @@ export async function GET(_request: Request) {
     try {
       const today = new Date().toISOString().split('T')[0];
       const tomorrow = new Date(Date.now() + 86400000).toISOString().split('T')[0];
-      const { count } = await (supabase as any).from("matches")
+      const { count } = await supabase.from("matches")
         .select("id", { count: "exact", head: true })
         .gte("match_date", today)
         .lt("match_date", tomorrow);
       matches_today = count ?? 0;
-    } catch (e) {
-      console.error("Error fetching matches_today:", e);
+    } catch (_e) {
+      console.error("Error fetching matches_today:", _e);
     }
 
     // live_matches: count of matches with status = 'live'
     try {
-      const { count } = await (supabase as any).from("matches")
+      const { count } = await supabase.from("matches")
         .select("id", { count: "exact", head: true })
         .eq("status", "live");
       live_matches = count ?? 0;
-    } catch (e) {
-      console.error("Error fetching live_matches:", e);
+    } catch (_e) {
+      console.error("Error fetching live_matches:", _e);
     }
 
     // players_registered: count of all players
     try {
-      const { count } = await (supabase as any).from("players")
+      const { count } = await supabase.from("players")
         .select("id", { count: "exact", head: true });
       players_registered = count ?? 0;
-    } catch (e) {
-      console.error("Error fetching players_registered:", e);
+    } catch (_e) {
+      console.error("Error fetching players_registered:", _e);
     }
 
     // highlights_published: count of highlights where is_verified = true
     try {
-      const { count } = await (supabase as any).from("highlights")
+      const { count } = await supabase.from("highlights")
         .select("id", { count: "exact", head: true })
         .eq("is_verified", true);
       highlights_published = count ?? 0;
-    } catch (e) {
-      console.error("Error fetching highlights_published:", e);
+    } catch (_e) {
+      console.error("Error fetching highlights_published:", _e);
     }
 
     // approved_today: count of logs where action like 'APPROVE%' and created_at is today
     try {
       const today = new Date().toISOString().split('T')[0];
-      const { count } = await (supabase as any).from("admin_logs")
+      const { count } = await supabase.from("admin_logs")
         .select("id", { count: "exact", head: true })
         .ilike("action", "APPROVE%")
         .gte("created_at", today);
       approved_today = count ?? 0;
-    } catch (e) {
+    } catch (_e) {
       // Fallback if admin_logs doesn't exist or is empty
       approved_today = 0;
     }
@@ -75,59 +75,59 @@ export async function GET(_request: Request) {
     try {
       // matches
       try {
-        const { count } = await (supabase as any).from("matches")
+        const { count } = await supabase.from("matches")
           .select("id", { count: "exact", head: true })
           .eq("is_verified", false);
         pending_matches = count ?? 0;
-      } catch (e) {
+      } catch (_e) {
         pending_matches = 0;
       }
 
       // match_events
       try {
-        const { count } = await (supabase as any).from("match_events")
+        const { count } = await supabase.from("match_events")
           .select("id", { count: "exact", head: true })
           .eq("is_verified", false);
         pending_events = count ?? 0;
-      } catch (e) {
+      } catch (_e) {
         pending_events = 0;
       }
 
       // announcements
       try {
-        const { count } = await (supabase as any).from("announcements")
+        const { count } = await supabase.from("announcements")
           .select("id", { count: "exact", head: true })
           .eq("is_verified", false);
         pending_announcements = count ?? 0;
-      } catch (e) {
+      } catch (_e) {
         pending_announcements = 0;
       }
 
       // players
       let pending_players = 0;
       try {
-        const { count } = await (supabase as any).from("players")
+        const { count } = await supabase.from("players")
           .select("id", { count: "exact", head: true })
           .eq("is_verified", false);
         pending_players = count ?? 0;
-      } catch (e) {
+      } catch (_e) {
         pending_players = 0;
       }
 
       // highlights
       let pending_highlights = 0;
       try {
-        const { count } = await (supabase as any).from("highlights")
+        const { count } = await supabase.from("highlights")
           .select("id", { count: "exact", head: true })
           .eq("is_verified", false);
         pending_highlights = count ?? 0;
-      } catch (e) {
+      } catch (_e) {
         pending_highlights = 0;
       }
 
       unverified_items = pending_matches + pending_events + pending_announcements + pending_players + pending_highlights;
-    } catch (e) {
-      console.error("Error calculating unverified_items:", e);
+    } catch (_e) {
+      console.error("Error calculating unverified_items:", _e);
     }
 
     return NextResponse.json({

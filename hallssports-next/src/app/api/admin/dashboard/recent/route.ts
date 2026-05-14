@@ -1,6 +1,17 @@
 import { NextResponse } from "next/server";
 import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
+interface Announcement { id: string; title: string; created_at: string; }
+interface Highlight { id: string; title: string; created_at: string; }
+interface Match { id: string; match_date: string; }
+interface AdminLog {
+  id: string;
+  action: string;
+  table_name: string;
+  details: unknown; // details is JSONB, so any or record is fine, but we'll use unknown or Record
+  created_at: string;
+}
+
 export async function GET(_request: Request) {
   try {
     const supabase = getSupabaseAdminClient();
@@ -24,7 +35,7 @@ export async function GET(_request: Request) {
 
       const fallbackActivity: Array<{id: string; type: string; summary: string; timestamp: string}> = [];
 
-      (announcements.data as any[])?.forEach((ann) => {
+      (announcements.data as Announcement[] | null)?.forEach((ann) => {
         fallbackActivity.push({
           id: ann.id,
           type: "announcement",
@@ -33,7 +44,7 @@ export async function GET(_request: Request) {
         });
       });
 
-      (highlights.data as any[])?.forEach((high) => {
+      (highlights.data as Highlight[] | null)?.forEach((high) => {
         fallbackActivity.push({
           id: high.id,
           type: "highlight",
@@ -42,7 +53,7 @@ export async function GET(_request: Request) {
         });
       });
 
-      (matches.data as any[])?.forEach((match) => {
+      (matches.data as Match[] | null)?.forEach((match) => {
         fallbackActivity.push({
           id: match.id,
           type: "match",
@@ -56,7 +67,7 @@ export async function GET(_request: Request) {
     }
 
     // Format logs into recent activity format
-    const recentActivity = (logs as any[]).map((log) => {
+    const recentActivity = (logs as AdminLog[]).map((log) => {
       let summary = `${log.action} on ${log.table_name}`;
       
       // Try to provide more detail from the 'new' record in details

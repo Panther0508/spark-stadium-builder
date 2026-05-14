@@ -25,7 +25,7 @@ export function CloudinaryUpload({ onSuccess, value, className }: CloudinaryUplo
           theme: "minimal",
         },
         (error, result) => {
-          if (!error && result && result.event === "success") {
+          if (!error && result && result.event === "success" && result.info.secure_url) {
             onSuccess(result.info.secure_url);
           }
         }

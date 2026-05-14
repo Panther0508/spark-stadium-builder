@@ -3,7 +3,6 @@
 import { useState, useEffect, useCallback } from "react";
 import { useToast } from "@/components/ToastProvider";
 import { AdminLayout } from "@/components/admin/AdminLayout";
-import { AdminCard } from "@/components/admin/AdminCard";
 import { Skeleton } from "@/components/Skeleton";
 import { Check, X, Shield, Users, Trophy, Megaphone, Film, Layers } from "lucide-react";
 
@@ -42,7 +41,7 @@ export default function VerifierQueue() {
       if (!res.ok) throw new Error("Failed to fetch queue");
       const data: QueueItem[] = await res.json();
       setItems(data);
-    } catch (err) {
+    } catch (_err) {
       addToast({ type: "error", title: "Error loading queue" });
     } finally {
       setLoading(false);
@@ -69,7 +68,7 @@ export default function VerifierQueue() {
       if (!res.ok) throw new Error("Failed to approve");
       addToast({ type: "success", title: "Approved & Published" });
       setItems(prev => prev.filter(i => i.id !== item.id));
-    } catch (err) {
+    } catch (_err) {
       addToast({ type: "error", title: "Failed to approve" });
     } finally {
       setIsProcessing(false);
@@ -88,7 +87,7 @@ export default function VerifierQueue() {
       if (!res.ok) throw new Error("Failed to reject");
       addToast({ type: "success", title: "Rejected & Deleted" });
       setItems(prev => prev.filter(i => i.id !== item.id));
-    } catch (err) {
+    } catch (_err) {
       addToast({ type: "error", title: "Failed to reject" });
     } finally {
       setIsProcessing(false);

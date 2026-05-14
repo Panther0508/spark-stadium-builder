@@ -60,7 +60,7 @@ export default function VerifierOverride() {
       
       setSelectedMatchId(null);
       setMatchData(null);
-    } catch (err) {
+    } catch (_err) {
       addToast({ type: "error", title: "Failed to save changes" });
     } finally {
       setIsSaving(false);
@@ -75,7 +75,7 @@ export default function VerifierOverride() {
         if (!res.ok) throw new Error("Failed to fetch matches");
         const data: Match[] = await res.json();
         setMatches(data);
-      } catch (err) {
+      } catch (_err) {
         addToast({ type: "error", title: "Error loading matches" });
       } finally {
         setLoading(false);
@@ -97,7 +97,7 @@ export default function VerifierOverride() {
              duration_minutes: data.duration_minutes ? String(data.duration_minutes) : "",
              status: data.status || "",
            });
-         } catch (err) {
+         } catch (_err) {
            addToast({ type: "error", title: "Failed to load match details" });
          }
        };

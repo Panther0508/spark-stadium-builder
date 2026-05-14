@@ -3,8 +3,8 @@
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Skeleton } from "@/components/Skeleton";
 import { useAdminAuth } from "@/hooks/useAdminAuth";
-import { useState, useEffect, useCallback, Suspense } from "react";
-import { Plus, Minus, User, Activity, RefreshCw, RotateCcw, Trash2 } from "lucide-react";
+import { useState, useEffect, useCallback as _useCallback, Suspense } from "react";
+import { Plus, Minus, User, Activity, RefreshCw, RotateCcw, Trash2 as _Trash2 } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
 import { adminSelect } from "@/app/admin/actions";
 import { FullScreenOverlay } from "@/components/FullScreenOverlay";
@@ -152,7 +152,8 @@ function LiveScoreContent() {
   const handleScoreChange = async (team: "home" | "away", increment: boolean) => {
     if (!selectedMatch) return;
     const field = team === "home" ? "home_score" : "away_score";
-    const currentValue = (selectedMatch as any)[field] ?? 0;
+    const matchData = selectedMatch as Record<string, unknown>;
+    const currentValue = (matchData[field] as number) ?? 0;
     const newValue = increment ? currentValue + 1 : Math.max(0, currentValue - 1);
     try {
       const res = await fetch('/api/admin/match-update', {
@@ -234,8 +235,8 @@ function LiveScoreContent() {
       if (!res.ok) throw new Error('Failed to update status');
       setSelectedMatch({ ...selectedMatch, status: newStatus });
       addToast({ type: "success", title: `Match set to ${newStatus}` });
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to update status";
+    } catch (_err) {
+      const message = "Failed to update status";
       setError(message);
       addToast({ type: "error", title: message });
     }

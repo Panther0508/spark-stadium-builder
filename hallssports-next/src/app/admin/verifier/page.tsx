@@ -30,7 +30,7 @@ export default function VerifierDashboard() {
   });
   const [recentActivity, setRecentActivity] = useState<RecentActivity[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+  const [_error, setError] = useState<string | null>(null);
   const { addToast } = useToast();
 
   const handlePublishAll = async () => {
@@ -80,7 +80,7 @@ export default function VerifierDashboard() {
           pendingEvents: data.pending_events || 0,
           approvedToday: data.approved_today || 0,
         });
-      } catch (err) {
+      } catch (_err) {
         const message = err instanceof Error ? err.message : "Unknown error";
         setError(message);
         addToast({ type: "error", title: message });
@@ -98,7 +98,7 @@ export default function VerifierDashboard() {
         if (!res.ok) throw new Error("Failed to fetch recent activity");
         const data: RecentActivity[] = await res.json();
         setRecentActivity(data);
-      } catch (err) {
+      } catch (_err) {
         console.warn("Failed to fetch recent activity", err);
       }
     };

@@ -8,7 +8,7 @@ import { PageShell } from "@/components/PageShell";
 import { GlassCard } from "@/components/GlassCard";
 import { Skeleton } from "@/components/Skeleton";
 import { GlassModal } from "@/components/GlassModal";
-import { RefreshCw, AlertOctagon, Database, Activity, Shield, ToggleLeft } from "lucide-react";
+import { RefreshCw, AlertOctagon, Database, Activity, ToggleLeft } from "lucide-react";
 import { motion } from "framer-motion";
 
 const DEV_KEY = "HallsSports_Dev_2025_Secure";
@@ -100,11 +100,11 @@ export default function DeveloperContent() {
   const [scanComplete, setScanComplete] = useState(false);
   const [issues, setIssues] = useState<Array<{ type: string; text: string }>>([]);
   const [sortBy, setSortBy] = useState({ key: "views", dir: "desc" });
-   const [errorModal, setErrorModal] = useState(false);
+   const [_errorModal, _setErrorModal] = useState(false);
    const [backupModal, setBackupModal] = useState(false);
-   const [lastBackupTime, setLastBackupTime] = useState<number | null>(null);
+   const [_lastBackupTime, setLastBackupTime] = useState<number | null>(null);
    const [data, setData] = useState<DevData | null>(null);
-   const [realLogs, setRealLogs] = useState<any[]>([]);
+   const [realLogs, setRealLogs] = useState<Array<{ summary: string; timestamp: string; type: string }>>([]);
    const [infraMetrics, setInfraMetrics] = useState<InfraMetrics | null>(null);
    const [metricsLoading, setMetricsLoading] = useState(true);
    const [flags, setFeatureFlags] = useState<FeatureFlag[]>([
@@ -186,7 +186,7 @@ export default function DeveloperContent() {
     setFeatureFlags(prev => prev.map(f => f.id === id ? { ...f, enabled: !f.enabled } : f));
   };
 
-  const formatTimeAgo = (timestamp: number) => {
+  const _formatTimeAgo = (timestamp: number) => {
     const seconds = Math.floor((Date.now() - timestamp) / 1000);
     if (seconds < 60) return "just now";
     const minutes = Math.floor(seconds / 60);

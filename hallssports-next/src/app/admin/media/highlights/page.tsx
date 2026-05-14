@@ -69,6 +69,12 @@ export default function HighlightsPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    
+    if (!formData.media_url) {
+      addToast({ type: "error", title: "Media URL is required. Please upload an image or provide a video link." });
+      return;
+    }
+
     setSubmitting(true);
     try {
       const res = await fetch('/api/admin/highlight-create', {

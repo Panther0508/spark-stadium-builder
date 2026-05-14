@@ -20,6 +20,8 @@ export function useAdminAuth(expectedRole?: Role): AdminAuthState {
   const router = useRouter();
 
   useEffect(() => {
+    if (typeof window === 'undefined') return;
+
     const checkAuth = () => {
       const role = localStorage.getItem('hallssports_admin_role') as Role | null;
 

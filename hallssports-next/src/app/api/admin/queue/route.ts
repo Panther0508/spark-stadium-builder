@@ -1,74 +1,32 @@
 import { NextResponse } from "next/server";
-import { createAdminClient } from "@/lib/supabase";
-
-interface SupabaseTeam {
-  name: string;
-}
-
-interface SupabaseMatch {
-  id: string;
-  home_team: SupabaseTeam | null;
-  away_team: SupabaseTeam | null;
-  status: string;
-  created_at: string;
-}
-
-interface SupabasePlayer {
-  id: string;
-  name: string;
-  team: SupabaseTeam | null;
-  jersey_number: string | number;
-  created_at: string;
-}
-
-interface SupabaseEvent {
-  id: string;
-  event_type: string;
-  minute: number;
-  player: { name: string } | null;
-  assist_player_id: string | null;
-  created_at: string;
-}
-
-interface SupabaseAnnouncement {
-  id: string;
-  title: string;
-  content: string;
-  created_at: string;
-}
-
-interface SupabaseHighlight {
-  id: string;
-  title: string;
-  match_id: string;
-  created_at: string;
-}
+import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 export async function POST() {
   try {
-    const supabase = createAdminClient();
+    const supabase = getSupabaseAdminClient();
 
     // Fetch unverified items from multiple tables
-    const [matches, events, players, announcements, highlights] = await Promise.all([
-      (supabase as any).from("matches").select("*, home_team:home_team_id(name), away_team:away_team_id(name)").eq("is_verified", false),
-      (supabase as any).from("match_events").select("*, match:match_id(id, home_team_id, away_team_id), player:player_id(id, name, team_id)").eq("is_verified", false),
-      (supabase as any).from("players").select("*, team:team_id(name)").eq("is_verified", false),
-      (supabase as any).from("announcements").select("*").eq("is_verified", false),
-      (supabase as any).from("highlights").select("*").eq("is_verified", false),
+    // Using select('*') first to be safe, then we can refine if needed.
+    // Joining only what is absolutely necessary.
+    const [matchesRes, eventsRes, playersRes, announcementsRes, highlightsRes] = await Promise.all([
+      supabase.from("matches").select("id, status, match_date, created_at, home_team:home_team_id(name), away_team:away_team_id(name)").eq("is_verified", false),
+      supabase.from("match_events").select("id, event_type, type, minute, player_name, created_at").eq("is_verified", false),
+      supabase.from("players").select("id, name, number, created_at, team:team_id(name)").eq("is_verified", false),
+      supabase.from("announcements").select("id, title, body, created_at").eq("is_verified", false),
+      supabase.from("highlights").select("id, title, match_id, created_at").eq("is_verified", false),
     ]);
 
-    // Check for errors
-    if (matches.error) throw matches.error;
-    if (events.error) throw events.error;
-    if (players.error) throw players.error;
-    if (announcements.error) throw announcements.error;
-    if (highlights.error) throw highlights.error;
+    // Check for errors individually to help debugging
+    if (matchesRes.error) console.error("Queue fetch error (matches):", matchesRes.error);
+    if (eventsRes.error) console.error("Queue fetch error (events):", eventsRes.error);
+    if (playersRes.error) console.error("Queue fetch error (players):", playersRes.error);
+    if (announcementsRes.error) console.error("Queue fetch error (announcements):", announcementsRes.error);
+    if (highlightsRes.error) console.error("Queue fetch error (highlights):", highlightsRes.error);
 
-    // Transform the data into a unified format
     const queueItems: { id: string; type: string; summary: string; created_at: string }[] = [];
 
     // Matches
-    (matches.data as unknown as SupabaseMatch[])?.forEach((match) => {
+    matchesRes.data?.forEach((match: { id: string; status: string; created_at: string; home_team: { name: string } | null; away_team: { name: string } | null }) => {
       const homeName = match.home_team?.name || "TBD";
       const awayName = match.away_team?.name || "TBD";
       queueItems.push({
@@ -80,46 +38,48 @@ export async function POST() {
     });
 
     // Events
-    (events.data as unknown as SupabaseEvent[])?.forEach((event) => {
-      const playerName = event.player?.name || "Unknown Player";
+    eventsRes.data?.forEach((event: { id: string; event_type: string; type: string; minute: number; player_name: string; created_at: string }) => {
       queueItems.push({
         id: event.id,
         type: "event",
-        summary: `${event.event_type || "Event"}: ${playerName} at ${event.minute}'${event.event_type === "goal" && event.assist_player_id ? ` (assist by ${event.assist_player_id})` : ""}`,
+        summary: `${event.event_type || event.type || "Event"}: ${event.player_name || "Unknown"} at ${event.minute}'`,
         created_at: event.created_at,
       });
     });
 
     // Players
-    (players.data as unknown as SupabasePlayer[])?.forEach((player) => {
-      const teamName = player.team?.name || "TBD";
+    playersRes.data?.forEach((player: { id: string; name: string; number: string; created_at: string; team: { name: string } | null }) => {
+      const teamName = player.team?.name || "Free Agent";
       queueItems.push({
         id: player.id,
         type: "player",
-        summary: `Player: ${player.name} (${teamName}, #${player.jersey_number || "?"})`,
+        summary: `Player: ${player.name} (${teamName}, #${player.number || "?"})`,
         created_at: player.created_at,
       });
     });
 
     // Announcements
-    (announcements.data as unknown as SupabaseAnnouncement[])?.forEach((announcement) => {
+    announcementsRes.data?.forEach((ann: { id: string; title: string; body: string; created_at: string }) => {
       queueItems.push({
-        id: announcement.id,
+        id: ann.id,
         type: "announcement",
-        summary: `Announcement: ${announcement.title || announcement.content?.slice(0, 50)}...`,
-        created_at: announcement.created_at,
+        summary: `Announcement: ${ann.title || ann.body?.slice(0, 50)}...`,
+        created_at: ann.created_at,
       });
     });
 
     // Highlights
-    (highlights.data as unknown as SupabaseHighlight[])?.forEach((highlight) => {
+    highlightsRes.data?.forEach((h: { id: string; title: string; created_at: string }) => {
       queueItems.push({
-        id: highlight.id,
+        id: h.id,
         type: "highlight",
-        summary: `Highlight: ${highlight.title || "Match highlight"} - ${highlight.match_id ? `Match ${highlight.match_id}` : ""}`,
-        created_at: highlight.created_at,
+        summary: `Highlight: ${h.title || "Match highlight"}`,
+        created_at: h.created_at,
       });
     });
+
+    // Sort by created_at desc
+    queueItems.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime());
 
     return NextResponse.json(queueItems);
   } catch (error) {

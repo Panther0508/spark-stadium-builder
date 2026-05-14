@@ -67,6 +67,11 @@ export default function PlayerPhotosPage() {
   const handleSave = async () => {
     if (!editingPlayerId) return;
     
+    if (!uploadedUrl) {
+      addToast({ type: "error", title: "Player photo is required" });
+      return;
+    }
+
     try {
       const res = await fetch('/api/admin/player-update', {
         method: 'POST',

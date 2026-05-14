@@ -59,6 +59,11 @@ export default function MatchCoversPage() {
   const handleSave = async () => {
     if (!editingMatchId) return;
     
+    if (!uploadedImageUrl) {
+      addToast({ type: "error", title: "Please upload a match cover image first" });
+      return;
+    }
+    
     try {
       const res = await fetch('/api/admin/match-update', {
         method: 'POST',

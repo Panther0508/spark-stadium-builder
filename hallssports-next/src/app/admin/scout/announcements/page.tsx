@@ -61,6 +61,11 @@ const loadData = useCallback(async () => {
   }, [loadData]);
 
   const handleSave = async () => {
+    if (!formData.image_url) {
+      addToast({ type: "error", title: "Banner image is required" });
+      return;
+    }
+
     try {
       const endpoint = editingAnnouncement ? '/api/admin/announcement-update' : '/api/admin/announcement-create';
       const body = {

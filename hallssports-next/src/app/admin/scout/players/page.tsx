@@ -50,7 +50,13 @@ export default function PlayersPage() {
       header: true,
       skipEmptyLines: true,
       complete: async (results) => {
-        const rows = results.data as any[];
+        interface CSVRow {
+          name: string;
+          team: string;
+          position: string;
+          number: string;
+        }
+        const rows = results.data as CSVRow[];
         if (rows.length === 0) {
           addToast({ type: "error", title: "CSV is empty" });
           return;
