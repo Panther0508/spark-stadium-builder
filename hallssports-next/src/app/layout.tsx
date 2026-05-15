@@ -11,6 +11,7 @@ import { FeedbackButtonProvider } from "@/components/FeedbackButtonProvider";
 import { Space_Grotesk } from "next/font/google";
 import { AdminNavButton } from "@/components/AdminNavButton";
 import { AnimatePresence } from "framer-motion";
+import { Analytics } from '@vercel/analytics/next';
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -109,6 +110,7 @@ export default function RootLayout({
         </ThemeProvider>
         <BottomNavWrapper />
         <FeedbackButtonProvider />
+        <Analytics />
       </body>
     </html>
   );
