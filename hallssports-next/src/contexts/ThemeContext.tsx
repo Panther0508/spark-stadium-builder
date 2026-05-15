@@ -18,33 +18,37 @@ interface ThemeContextValue {
 const ThemeContext = createContext<ThemeContextValue | null>(null);
 
 const DEFAULT_THEME = "dark";
-
-function getStoredTheme(): Theme {
-  if (typeof window === "undefined") return "dark";
-  return (localStorage.getItem("hallssports_theme") as Theme) || "dark";
-}
-
-function getStoredFontSize(): FontSize {
-  if (typeof window === "undefined") return "medium";
-  return (localStorage.getItem("hallssports_fontSize") as FontSize) || "medium";
-}
-
-function getStoredReduceMotion(): boolean {
-  if (typeof window === "undefined") return false;
-  return localStorage.getItem("hallssports_reduceMotion") === "true";
-}
+const DEFAULT_FONT_SIZE = "medium";
+const DEFAULT_REDUCE_MOTION = false;
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(getStoredTheme());
-  const [fontSize, setFontSizeState] = useState<FontSize>(getStoredFontSize());
-  const [reduceMotion, setReduceMotionState] = useState<boolean>(getStoredReduceMotion());
+  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
+  const [fontSize, setFontSizeState] = useState<FontSize>(DEFAULT_FONT_SIZE);
+  const [reduceMotion, setReduceMotionState] = useState<boolean>(DEFAULT_REDUCE_MOTION);
+
+  useEffect(() => {
+    // Read from storage on mount
+    const storedTheme = localStorage.getItem("hallssports_theme") as Theme;
+    if (storedTheme) setThemeState(storedTheme);
+    
+    const storedFontSize = localStorage.getItem("hallssports_fontSize") as FontSize;
+    if (storedFontSize) setFontSizeState(storedFontSize);
+    
+    const storedReduceMotion = localStorage.getItem("hallssports_reduceMotion");
+    if (storedReduceMotion) setReduceMotionState(storedReduceMotion === "true");
+  }, []);
 
   useEffect(() => {
     // Sync state if storage changes
     const handleStorage = () => {
-      setThemeState(getStoredTheme());
-      setFontSizeState(getStoredFontSize());
-      setReduceMotionState(getStoredReduceMotion());
+      const storedTheme = localStorage.getItem("hallssports_theme") as Theme;
+      if (storedTheme) setThemeState(storedTheme);
+      
+      const storedFontSize = localStorage.getItem("hallssports_fontSize") as FontSize;
+      if (storedFontSize) setFontSizeState(storedFontSize);
+      
+      const storedReduceMotion = localStorage.getItem("hallssports_reduceMotion");
+      if (storedReduceMotion) setReduceMotionState(storedReduceMotion === "true");
     };
     window.addEventListener("storage", handleStorage);
     return () => window.removeEventListener("storage", handleStorage);

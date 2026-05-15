@@ -49,7 +49,15 @@ export default function LeadersPage() {
     
     setLoading(true);
     try {
-      const { data: result, error } = await supabase.rpc(`get_top_${activeTab}`, { limit_count: 10 });
+      const functionMap: Record<Tab, string> = {
+        goals: "get_top_goals_scorers",
+        assists: "get_top_assists",
+        clean_sheets: "get_top_clean_sheets",
+        corners: "get_top_corners",
+        cards: "get_top_cards",
+      };
+      const rpcName = functionMap[activeTab];
+      const { data: result, error } = await supabase.rpc(rpcName, { limit_val: 10 });
       if (error) throw error;
       setData(prev => ({ ...prev, [activeTab]: result || [] }));
     } catch (e) {

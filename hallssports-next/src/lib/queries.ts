@@ -350,7 +350,7 @@ export async function getPlayerById(playerId: string): Promise<Player | null> {
       .from('players')
       .select('*, teams:team_id(*)')
       .eq('id', playerId)
-      .single();
+      .maybeSingle();
 
     if (data) {
       const d = data as { 

@@ -113,6 +113,10 @@ export default function ScoutDashboardPage() {
                  <span>Announcements</span>
                  <Megaphone className="w-4 h-4 text-primary" />
               </a>
+              <a href="/admin/scout/standings" className="p-4 glass rounded-xl hover:bg-white/10 transition-all border border-white/10 flex items-center justify-between">
+                 <span>Manage Standings</span>
+                 <Activity className="w-4 h-4 text-primary" />
+              </a>
             </div>
           </AdminCard>
 

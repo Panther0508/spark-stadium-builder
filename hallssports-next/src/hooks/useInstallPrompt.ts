@@ -11,7 +11,7 @@ export function useInstallPrompt() {
 
   useEffect(() => {
     const handler = (e: Event) => {
-      e.preventDefault();
+      // e.preventDefault(); // Removed to allow default browser behavior if needed, or to fix the warning.
       deferredPromptRef.current = e as BeforeInstallPromptEvent;
       setIsInstallable(true);
     };

@@ -20,6 +20,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error updating/creating team:", error);
-    return NextResponse.json({ error: "Failed to update/create team" }, { status: 500 });
+    return NextResponse.json({ error: "Failed to update/create team: " + (error instanceof Error ? error.message : String(error)) }, { status: 500 });
   }
 }
