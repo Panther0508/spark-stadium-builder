@@ -61,12 +61,20 @@ export default function HomePage() {
   const [error, setError] = useState<string | null>(null);
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
+  const [tournamentLogo, setTournamentLogo] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
+
+        // Fetch tournament logo from settings
+        const settingsRes = await fetch("/api/settings");
+        if (settingsRes.ok) {
+          const settings = await settingsRes.json();
+          setTournamentLogo(settings.tournament_logo);
+        }
 
         // Fetch AI Insight (simulated or real)
         const insights = [
@@ -150,24 +158,41 @@ export default function HomePage() {
        )}
 
        {/* Hero Section */}
-      <section className="text-center py-12 md:py-16 space-y-4">
-        <motion.h1
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="text-4xl md:text-5xl font-bold"
-        >
-          Live Football,{" "}
-          <span className="text-primary">Proudly Futoite</span>
-        </motion.h1>
-        <motion.p
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-muted-foreground max-w-2xl mx-auto"
-        >
-          Real-time scores, stats, and community chat for FUTO hostel competitions.
-          Never miss a moment.
-        </motion.p>
+      <section className="text-center py-12 md:py-16 space-y-6">
+        {tournamentLogo && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="flex justify-center mb-4"
+          >
+            <div className="relative w-24 h-24 md:w-32 md:h-32">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={tournamentLogo as string}
+                alt="Tournament Logo"
+                className="w-32 h-32 object-contain"
+              />            </div>
+          </motion.div>
+        )}
+        <div className="space-y-4">
+          <motion.h1
+            initial={{ opacity: 0, y: -20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="text-4xl md:text-5xl font-bold"
+          >
+            Live Football,{" "}
+            <span className="text-primary">Proudly Futoite</span>
+          </motion.h1>
+          <motion.p
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.2 }}
+            className="text-muted-foreground max-w-2xl mx-auto"
+          >
+            Real-time scores, stats, and community chat for FUTO hostel competitions.
+            Never miss a moment.
+          </motion.p>
+        </div>
       </section>
 
       {/* AI Insight Card */}

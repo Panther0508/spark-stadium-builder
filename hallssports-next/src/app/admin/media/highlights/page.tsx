@@ -9,7 +9,7 @@ import { useState, useEffect } from "react";
 import { Plus, Edit, Trash2, Play, GripVertical } from "lucide-react";
 import { useToast } from "@/components/ToastProvider";
 import { getHighlights } from "./actions";
-import { CloudinaryUpload } from "@/components/admin/CloudinaryUpload";
+import { extractYouTubeID } from "@/lib/extractYouTubeID";
 import { Reorder, useDragControls } from "framer-motion";
 
 type Highlight = {
@@ -18,6 +18,7 @@ type Highlight = {
   description?: string;
   media_url: string;
   media_type: "video" | "image";
+  match_id?: string;
   is_verified?: boolean;
   created_at: string;
 };
@@ -29,10 +30,10 @@ export default function HighlightsPage() {
   const [highlights, setHighlights] = useState<Highlight[]>([]);
   const [loadingData, setLoadingData] = useState(true);
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     title: "",
     media_url: "",
-    media_type: "image" as "image" | "video",
     match_id: "",
   });
   const [submitting, setSubmitting] = useState(false);
@@ -70,47 +71,56 @@ export default function HighlightsPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     
-    if (!formData.media_url) {
-      addToast({ type: "error", title: "Media URL is required. Please upload an image or provide a video link." });
+    const youtubeId = extractYouTubeID(formData.media_url);
+    if (!youtubeId) {
+      addToast({ type: "error", title: "Invalid YouTube URL" });
       return;
     }
 
     setSubmitting(true);
     try {
-      const res = await fetch('/api/admin/highlight-create', {
+      const res = await fetch('/api/admin/update-highlight', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
+          id: editingId,
           title: formData.title,
           media_url: formData.media_url,
-          media_type: formData.media_type,
+          media_type: 'video',
           match_id: formData.match_id || undefined,
         })
       });
       
       if (!res.ok) {
         const error = await res.json();
-        throw new Error(error.error || 'Failed to add highlight');
+        throw new Error(error.error || 'Failed to save highlight');
       }
       
-      setFormData({ title: "", media_url: "", media_type: "image", match_id: "" });
+      setFormData({ title: "", media_url: "", match_id: "" });
       setShowForm(false);
+      setEditingId(null);
       const data = await getHighlights();
       setHighlights(data);
-      addToast({ type: "success", title: "Highlight added" });
+      addToast({ type: "success", title: editingId ? "Highlight updated" : "Highlight added" });
     } catch (err) {
-      addToast({ type: "error", title: err instanceof Error ? err.message : "Failed to add highlight" });
+      addToast({ type: "error", title: err instanceof Error ? err.message : "Failed to save highlight" });
     } finally {
       setSubmitting(false);
     }
   };
 
+  const handleEdit = (h: Highlight) => {
+    setEditingId(h.id);
+    setFormData({
+      title: h.title || "",
+      media_url: h.media_url,
+      match_id: h.match_id || "",
+    });
+    setShowForm(true);
+  };
+
   const handleReorder = async (newOrder: Highlight[]) => {
     setHighlights(newOrder);
-    // Ideally, we'd save the order here. 
-    // For now, we'll send a bulk update to the server if an API existed,
-    // or just assume it's saved locally for the session.
-    // The prompt says "drag-and-drop reorder", so we implement the UI and try to save.
     try {
       const updates = newOrder.map((h, index) => ({ id: h.id, order_index: index }));
       await fetch('/api/admin/highlights-reorder', {
@@ -137,7 +147,15 @@ export default function HighlightsPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Manage Highlights</h1>
           <button
-            onClick={() => setShowForm(!showForm)}
+            onClick={() => {
+              if (showForm) {
+                setShowForm(false);
+                setEditingId(null);
+                setFormData({ title: "", media_url: "", match_id: "" });
+              } else {
+                setShowForm(true);
+              }
+            }}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -147,37 +165,32 @@ export default function HighlightsPage() {
 
         {showForm && (
           <AdminCard>
-            <h2 className="text-lg font-bold mb-4">Add New Highlight</h2>
+            <h2 className="text-lg font-bold mb-4">
+              {editingId ? "Edit Highlight" : "Add New Highlight"}
+            </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Title</label>
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium mb-1.5">Highlight Caption / Title</label>
                   <input
                     type="text"
                     value={formData.title}
                     onChange={e => setFormData({ ...formData, title: e.target.value })}
                     required
                     className="w-full px-3 py-2 rounded-lg glass border border-white/20 bg-white/5 focus:border-primary focus:outline-none"
-                    placeholder="Highlight title"
+                    placeholder="Enter highlight caption"
                   />
                 </div>
                 <div className="md:col-span-2">
-                  <label className="block text-sm font-medium mb-1.5">Media Upload</label>
-                  <CloudinaryUpload 
-                    value={formData.media_url} 
-                    onSuccess={(url) => setFormData({ ...formData, media_url: url })} 
-                  />
-                </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Type</label>
-                  <select
-                    value={formData.media_type}
-                    onChange={e => setFormData({ ...formData, media_type: e.target.value as "image" | "video" })}
+                  <label className="block text-sm font-medium mb-1.5">YouTube Link</label>
+                  <input
+                    type="text"
+                    value={formData.media_url}
+                    onChange={e => setFormData({ ...formData, media_url: e.target.value })}
+                    required
                     className="w-full px-3 py-2 rounded-lg glass border border-white/20 bg-white/5 focus:border-primary focus:outline-none"
-                  >
-                    <option value="image">Image</option>
-                    <option value="video">Video (YouTube)</option>
-                  </select>
+                    placeholder="Paste YouTube link (e.g., https://youtu.be/...)"
+                  />
                 </div>
                 <div>
                   <label className="block text-sm font-medium mb-1.5">Match ID (optional)</label>
@@ -193,10 +206,10 @@ export default function HighlightsPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-4 py-2 bg-primary text-white rounded-lg font-medium disabled:opacity-50 flex items-center gap-2"
+                className="px-6 py-2 bg-primary text-white rounded-lg font-bold disabled:opacity-50 flex items-center gap-2"
               >
                 {submitting && <span className="animate-spin">⟳</span>}
-                {submitting ? "Adding..." : "Add Highlight"}
+                {editingId ? "Update Highlight" : "Add Highlight"}
               </button>
             </form>
           </AdminCard>
@@ -209,7 +222,12 @@ export default function HighlightsPage() {
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4"
         >
           {highlights.map(h => (
-            <ReorderItem key={h.id} highlight={h} onDelete={() => handleDelete(h.id)} />
+            <ReorderItem 
+              key={h.id} 
+              highlight={h} 
+              onEdit={() => handleEdit(h)}
+              onDelete={() => handleDelete(h.id)} 
+            />
           ))}
         </Reorder.Group>
       </div>
@@ -217,8 +235,9 @@ export default function HighlightsPage() {
   );
 }
 
-function ReorderItem({ highlight, onDelete }: { highlight: Highlight; onDelete: () => void }) {
+function ReorderItem({ highlight, onEdit, onDelete }: { highlight: Highlight; onEdit: () => void; onDelete: () => void }) {
   const controls = useDragControls();
+  const youtubeId = extractYouTubeID(highlight.media_url);
 
   return (
     <Reorder.Item
@@ -236,7 +255,19 @@ function ReorderItem({ highlight, onDelete }: { highlight: Highlight; onDelete: 
         </div>
 
         <div className="aspect-video bg-black/20 rounded-lg mb-3 flex items-center justify-center overflow-hidden relative">
-          {highlight.media_type === "video" ? (
+          {highlight.media_type === "video" && youtubeId ? (
+            <img 
+              src={`https://img.youtube.com/vi/${youtubeId}/mqdefault.jpg`}
+              alt={highlight.title || "Highlight"}
+              className="w-full h-full object-cover"
+            />
+          ) : highlight.media_type === "image" ? (
+            <img
+              src={highlight.media_url}
+              alt={highlight.title || "Highlight"}
+              className="max-w-full max-h-full object-contain"
+            />
+          ) : (
             <div className="flex flex-col items-center gap-2 px-4 text-center">
               <div className="w-12 h-12 rounded-full bg-primary/20 flex items-center justify-center">
                 <Play className="w-6 h-6 text-primary fill-primary" />
@@ -245,17 +276,16 @@ function ReorderItem({ highlight, onDelete }: { highlight: Highlight; onDelete: 
                 {highlight.media_url}
               </span>
             </div>
-          ) : (
-            <img
-              src={highlight.media_url}
-              alt={highlight.title || "Highlight"}
-              className="max-w-full max-h-full object-contain"
-            />
+          )}
+          {highlight.media_type === "video" && (
+            <div className="absolute inset-0 flex items-center justify-center bg-black/20">
+              <Play className="w-10 h-10 text-white fill-white opacity-80" />
+            </div>
           )}
         </div>
         <div className="font-medium mb-2 line-clamp-2 pr-8">{highlight.title || "Untitled"}</div>
         <div className="flex gap-2">
-          <button className="p-1 glass rounded hover:bg-white/20" title="Edit">
+          <button onClick={onEdit} className="p-1 glass rounded hover:bg-white/20" title="Edit">
             <Edit className="w-4 h-4" />
           </button>
           <button onClick={onDelete} className="p-1 glass rounded hover:bg-red-500/20" title="Delete">

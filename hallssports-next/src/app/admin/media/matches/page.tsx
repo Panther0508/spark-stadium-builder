@@ -65,11 +65,11 @@ export default function MatchCoversPage() {
     }
     
     try {
-      const res = await fetch('/api/admin/match-update', {
+      const res = await fetch('/api/admin/update-match', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          matchId: editingMatchId,
+          id: editingMatchId,
           image_url: uploadedImageUrl,
           admin_post: newAdminPost,
           venue: newVenue 

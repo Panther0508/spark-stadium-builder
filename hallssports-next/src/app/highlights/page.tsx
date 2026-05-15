@@ -38,7 +38,8 @@ export default function HighlightsPage() {
         }
         const { data } = await supabase
           .from("highlights")
-          .select("*");
+          .select("*")
+          .eq("is_verified", true);
         setHighlights((data || []) as Highlight[]);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load highlights");

@@ -53,7 +53,7 @@ export default function TeamLogosPage() {
     }
     
     try {
-      const res = await fetch('/api/admin/team-update', {
+      const res = await fetch('/api/admin/update-team', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({

@@ -1,4 +1,4 @@
-import { getPlayerById } from "@/lib/queries";
+import { getPlayerById, getPlayerRecentMatches } from "@/lib/queries";
 import type { Metadata } from "next";
 import PlayerProfileClient from "./PlayerProfileClient";
 import { PageShell } from "@/components/PageShell";
@@ -35,7 +35,10 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
 }
 
 export default async function PlayerProfilePage({ params }: { params: { id: string } }) {
-  const player = await getPlayerById(params.id);
+  const [player, recentMatches] = await Promise.all([
+    getPlayerById(params.id),
+    getPlayerRecentMatches(params.id)
+  ]);
 
   if (!player) {
     return (
@@ -69,7 +72,7 @@ export default async function PlayerProfilePage({ params }: { params: { id: stri
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: jsonLdString }}
       />
-      <PlayerProfileClient player={player} />
+      <PlayerProfileClient player={player} recentMatches={recentMatches} />
     </>
   );
 }

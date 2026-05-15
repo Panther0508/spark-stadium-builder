@@ -6,74 +6,64 @@ export async function POST() {
     const supabase = getSupabaseAdminClient();
 
     // Fetch unverified items from multiple tables
-    // Using select('*') first to be safe, then we can refine if needed.
-    // Joining only what is absolutely necessary.
     const [matchesRes, eventsRes, playersRes, announcementsRes, highlightsRes] = await Promise.all([
       supabase.from("matches").select("id, status, match_date, created_at, home_team:home_team_id(name), away_team:away_team_id(name)").eq("is_verified", false),
-      supabase.from("match_events").select("id, event_type, type, minute, player_name, created_at").eq("is_verified", false),
-      supabase.from("players").select("id, name, number, created_at, team:team_id(name)").eq("is_verified", false),
-      supabase.from("announcements").select("id, title, body, created_at").eq("is_verified", false),
-      supabase.from("highlights").select("id, title, match_id, created_at").eq("is_verified", false),
+      supabase.from("match_events").select("id, type, minute, player_name, created_at, matches(home_team:home_team_id(name), away_team:away_team_id(name))").eq("is_verified", false),
+      supabase.from("players").select("id, name, number, position, created_at, teams:team_id(name)").eq("is_verified", false),
+      supabase.from("announcements").select("id, title, created_at").eq("is_verified", false),
+      supabase.from("highlights").select("id, title, created_at, media_type").eq("is_verified", false),
     ]);
-
-    // Check for errors individually to help debugging
-    if (matchesRes.error) console.error("Queue fetch error (matches):", matchesRes.error);
-    if (eventsRes.error) console.error("Queue fetch error (events):", eventsRes.error);
-    if (playersRes.error) console.error("Queue fetch error (players):", playersRes.error);
-    if (announcementsRes.error) console.error("Queue fetch error (announcements):", announcementsRes.error);
-    if (highlightsRes.error) console.error("Queue fetch error (highlights):", highlightsRes.error);
 
     const queueItems: { id: string; type: string; summary: string; created_at: string }[] = [];
 
     // Matches
-    matchesRes.data?.forEach((match: { id: string; status: string; created_at: string; home_team: { name: string } | null; away_team: { name: string } | null }) => {
-      const homeName = match.home_team?.name || "TBD";
-      const awayName = match.away_team?.name || "TBD";
+    matchesRes.data?.forEach((match: { id: string; status: string; match_date: string; created_at: string; home_team: { name: string } | null; away_team: { name: string } | null }) => {
       queueItems.push({
         id: match.id,
         type: "match",
-        summary: `Match: ${homeName} vs ${awayName} (${match.status || "Scheduled"})`,
+        summary: `New Match: ${match.home_team?.name || 'TBD'} vs ${match.away_team?.name || 'TBD'} on ${new Date(match.match_date).toLocaleDateString()}`,
         created_at: match.created_at,
       });
     });
 
     // Events
-    eventsRes.data?.forEach((event: { id: string; event_type: string; type: string; minute: number; player_name: string; created_at: string }) => {
+    eventsRes.data?.forEach((event: { id: string; type: string; minute: number; player_name: string; created_at: string; matches: { home_team: { name: string } | null; away_team: { name: string } | null } | null }) => {
+      const match = event.matches;
+      const matchLabel = match ? ` (${match.home_team?.name} vs ${match.away_team?.name})` : '';
       queueItems.push({
         id: event.id,
         type: "event",
-        summary: `${event.event_type || event.type || "Event"}: ${event.player_name || "Unknown"} at ${event.minute}'`,
+        summary: `Event: ${event.type.toUpperCase()} by ${event.player_name} at ${event.minute}'${matchLabel}`,
         created_at: event.created_at,
       });
     });
 
     // Players
-    playersRes.data?.forEach((player: { id: string; name: string; number: string; created_at: string; team: { name: string } | null }) => {
-      const teamName = player.team?.name || "Free Agent";
+    playersRes.data?.forEach((player: { id: string; name: string; number: number; position: string; created_at: string; teams: { name: string } | null }) => {
       queueItems.push({
         id: player.id,
         type: "player",
-        summary: `Player: ${player.name} (${teamName}, #${player.number || "?"})`,
+        summary: `Player: ${player.name} (#${player.number}, ${player.position}) for ${player.teams?.name || 'Unknown'}`,
         created_at: player.created_at,
       });
     });
 
     // Announcements
-    announcementsRes.data?.forEach((ann: { id: string; title: string; body: string; created_at: string }) => {
+    announcementsRes.data?.forEach((ann: { id: string; title: string; created_at: string }) => {
       queueItems.push({
         id: ann.id,
         type: "announcement",
-        summary: `Announcement: ${ann.title || ann.body?.slice(0, 50)}...`,
+        summary: `Announcement: ${ann.title}`,
         created_at: ann.created_at,
       });
     });
 
     // Highlights
-    highlightsRes.data?.forEach((h: { id: string; title: string; created_at: string }) => {
+    highlightsRes.data?.forEach((h: { id: string; title: string; created_at: string; media_type: string }) => {
       queueItems.push({
         id: h.id,
         type: "highlight",
-        summary: `Highlight: ${h.title || "Match highlight"}`,
+        summary: `Highlight (${h.media_type}): ${h.title || 'Untitled'}`,
         created_at: h.created_at,
       });
     });

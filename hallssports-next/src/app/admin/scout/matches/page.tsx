@@ -105,6 +105,7 @@ useEffect(() => {
       }
 
       const data = {
+        id: editingMatch?.id,
         home_team_id: formData.home_team_id,
         away_team_id: formData.away_team_id,
         match_date: new Date(formData.match_date).toISOString(),
@@ -114,23 +115,18 @@ useEffect(() => {
         community_visible: formData.community_visible,
       };
 
-      if (editingMatch) {
-        const res = await fetch('/api/admin/match-update', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ matchId: editingMatch.id, ...data })
-        });
-        if (!res.ok) throw new Error('Update failed');
-        addToast({ type: "success", title: "Match updated" });
-      } else {
-        const res = await fetch('/api/admin/match-create', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(data)
-        });
-        if (!res.ok) throw new Error('Create failed');
-        addToast({ type: "success", title: "Match created" });
+      const res = await fetch('/api/admin/update-match', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data)
+      });
+      
+      if (!res.ok) {
+        const err = await res.json();
+        throw new Error(err.error || 'Failed to save match');
       }
+      
+      addToast({ type: "success", title: editingMatch ? "Match updated" : "Match created" });
       
       setModalOpen(false);
       setEditingMatch(null);

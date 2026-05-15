@@ -33,6 +33,9 @@ export default function PlayerPhotosPage() {
   const [editingPlayerId, setEditingPlayerId] = useState<string | null>(null);
   const [uploadedUrl, setUploadedUrl] = useState<string | null>(null);
   const [newBio, setNewBio] = useState("");
+  const [newName, setNewName] = useState("");
+  const [newNumber, setNewNumber] = useState("");
+  const [newPosition, setNewPosition] = useState("");
 
   useEffect(() => {
     const load = async () => {
@@ -73,13 +76,16 @@ export default function PlayerPhotosPage() {
     }
 
     try {
-      const res = await fetch('/api/admin/player-update', {
+      const res = await fetch('/api/admin/update-player', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           id: editingPlayerId,
           photo_url: uploadedUrl,
-          bio: newBio 
+          bio: newBio,
+          name: newName,
+          number: parseInt(newNumber),
+          position: newPosition
         })
       });
       
@@ -92,7 +98,7 @@ export default function PlayerPhotosPage() {
       setPlayers(prev => 
         prev.map(p => 
           p.id === editingPlayerId 
-            ? { ...p, photo_url: uploadedUrl ?? undefined, bio: newBio } 
+            ? { ...p, photo_url: uploadedUrl ?? undefined, bio: newBio, name: newName, number: newNumber, position: newPosition } 
             : p
         )
       );
@@ -100,6 +106,9 @@ export default function PlayerPhotosPage() {
       setEditingPlayerId(null);
       setUploadedUrl(null);
       setNewBio("");
+      setNewName("");
+      setNewNumber("");
+      setNewPosition("");
       addToast({ type: "success", title: "Player updated" });
     } catch (error) {
       console.error('Failed to update player:', error);
@@ -204,6 +213,9 @@ export default function PlayerPhotosPage() {
                     setEditingPlayerId(player.id);
                     setUploadedUrl(player.photo_url ?? null);
                     setNewBio(player.bio || "");
+                    setNewName(player.name);
+                    setNewNumber(player.number.toString());
+                    setNewPosition(player.position);
                   }}
                   className="flex-1 min-h-[44px] px-3 py-2 border border-green-500/40 rounded-lg text-green-400 hover:bg-green-500/10"
                 >
@@ -219,44 +231,109 @@ export default function PlayerPhotosPage() {
               setEditingPlayerId(null);
               setUploadedUrl(null);
               setNewBio("");
+              setNewName("");
+              setNewNumber("");
+              setNewPosition("");
             }}
           >
             {editingPlayerId ? (
-              <>
-                <div className="space-y-4">
-                  <h2 className="text-xl font-bold">Edit Player</h2>
-                  <ImageUpload 
-                    label="Player Photo"
-                    currentUrl={uploadedUrl}
-                    onUpload={(url) => setUploadedUrl(url)}
-                  />
+              <div className="space-y-4 max-h-[80vh] overflow-y-auto pr-2 custom-scrollbar">
+                <h2 className="text-xl font-bold">Edit Player</h2>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Full Name</label>
+                      <input
+                        value={newName}
+                        onChange={e => setNewName(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Jersey Number</label>
+                      <input
+                        type="number"
+                        value={newNumber}
+                        onChange={e => setNewNumber(e.target.value)}
+                        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none"
+                      />
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium mb-1">Position</label>
+                      <select
+                        value={["Goalkeeper", "Defender", "Midfielder", "Forward", "Coach"].includes(newPosition) ? newPosition : (newPosition ? "Other" : "")}
+                        onChange={e => {
+                          const val = e.target.value;
+                          if (val === "Other") {
+                            setNewPosition("");
+                          } else {
+                            setNewPosition(val);
+                          }
+                        }}
+                        className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20 mb-2 outline-none focus:border-primary"
+                      >
+                        <option value="">Select position</option>
+                        <option value="Goalkeeper">Goalkeeper</option>
+                        <option value="Defender">Defender</option>
+                        <option value="Midfielder">Midfielder</option>
+                        <option value="Forward">Forward</option>
+                        <option value="Coach">Coach</option>
+                        <option value="Other">Other</option>
+                      </select>
+                      {(newPosition === "" || !["Goalkeeper", "Defender", "Midfielder", "Forward", "Coach"].includes(newPosition)) && (
+                        <input
+                          value={newPosition}
+                          onChange={e => setNewPosition(e.target.value)}
+                          placeholder="Enter custom position"
+                          className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none"
+                        />
+                      )}
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-4">
+                    <ImageUpload 
+                      label="Player Photo"
+                      currentUrl={uploadedUrl}
+                      onUpload={(url) => setUploadedUrl(url)}
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium mb-1">Bio</label>
                   <textarea
                     value={newBio}
                     onChange={e => setNewBio(e.target.value)}
                     placeholder="Enter player bio..."
                     className="w-full h-32 px-3 py-2 rounded-lg bg-white/5 border border-white/20 focus:border-primary focus:outline-none resize-none"
                   />
-                  <div className="flex gap-3 pt-2">
-                    <button
-                      onClick={() => {
-                        setEditingPlayerId(null);
-                        setUploadedUrl(null);
-                        setNewBio("");
-                      }}
-                      className="flex-1 min-h-[44px] px-4 py-2 rounded-lg glass hover:bg-white/20"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      onClick={handleSave}
-                      disabled={!uploadedUrl && !players.find(p => p.id === editingPlayerId)?.photo_url}
-                      className="flex-1 min-h-[44px] px-4 py-2 bg-green-500 text-green-50 foreground rounded-lg disabled:opacity-50"
-                    >
-                      Save
-                    </button>
-                  </div>
                 </div>
-              </>
+
+                <div className="flex gap-3 pt-2">
+                  <button
+                    onClick={() => {
+                      setEditingPlayerId(null);
+                      setUploadedUrl(null);
+                      setNewBio("");
+                      setNewName("");
+                      setNewNumber("");
+                      setNewPosition("");
+                    }}
+                    className="flex-1 min-h-[44px] px-4 py-2 rounded-lg glass hover:bg-white/20"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    onClick={handleSave}
+                    disabled={!uploadedUrl && !players.find(p => p.id === editingPlayerId)?.photo_url}
+                    className="flex-1 min-h-[44px] px-4 py-2 bg-green-500 text-green-50 foreground rounded-lg disabled:opacity-50"
+                  >
+                    Save
+                  </button>
+                </div>
+              </div>
             ) : null}
           </FullScreenOverlay>
         </div>

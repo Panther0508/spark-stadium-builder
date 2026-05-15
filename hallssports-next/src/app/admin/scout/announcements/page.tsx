@@ -67,7 +67,7 @@ const loadData = useCallback(async () => {
     }
 
     try {
-      const endpoint = editingAnnouncement ? '/api/admin/announcement-update' : '/api/admin/announcement-create';
+      const endpoint = '/api/admin/update-announcement';
       const body = {
         id: editingAnnouncement?.id,
         title: formData.title,

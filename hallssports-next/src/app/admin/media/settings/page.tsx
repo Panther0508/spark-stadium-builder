@@ -24,6 +24,9 @@ type Settings = {
   tournament_name: string;
   tournament_logo: string;
   about_description: string;
+  about_mission: string;
+  about_vision: string;
+  about_goals: string;
   pantero_url: string;
   feedback_url: string;
   organizers: Person[];
@@ -38,6 +41,9 @@ export default function SettingsPage() {
     tournament_name: "HallsSports Tournament",
     tournament_logo: "",
     about_description: "",
+    about_mission: "",
+    about_vision: "",
+    about_goals: "",
     pantero_url: "https://pantero.vercel.app",
     feedback_url: "",
     organizers: [],
@@ -85,13 +91,16 @@ export default function SettingsPage() {
         { key: "tournament_name", value: settings.tournament_name },
         { key: "tournament_logo", value: settings.tournament_logo },
         { key: "about_description", value: settings.about_description },
+        { key: "about_mission", value: settings.about_mission },
+        { key: "about_vision", value: settings.about_vision },
+        { key: "about_goals", value: settings.about_goals },
         { key: "pantero_url", value: settings.pantero_url },
         { key: "feedback_url", value: settings.feedback_url },
         { key: "organizers", value: JSON.stringify(settings.organizers) },
         { key: "contributors", value: JSON.stringify(settings.contributors) },
       ];
       
-      const res = await fetch('/api/admin/settings-update', {
+      const res = await fetch('/api/admin/update-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
@@ -224,6 +233,33 @@ export default function SettingsPage() {
               placeholder="Tell us about the tournament..."
             />
           </AdminFormField>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <AdminFormField label="Our Mission">
+              <textarea
+                value={settings.about_mission}
+                onChange={e => setSettings({ ...settings, about_mission: e.target.value })}
+                className="w-full min-h-32 px-3 py-2 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none resize-none"
+                placeholder="Our mission is to..."
+              />
+            </AdminFormField>
+            <AdminFormField label="Our Vision">
+              <textarea
+                value={settings.about_vision}
+                onChange={e => setSettings({ ...settings, about_vision: e.target.value })}
+                className="w-full min-h-32 px-3 py-2 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none resize-none"
+                placeholder="Our vision is to..."
+              />
+            </AdminFormField>
+            <AdminFormField label="Our Goals">
+              <textarea
+                value={settings.about_goals}
+                onChange={e => setSettings({ ...settings, about_goals: e.target.value })}
+                className="w-full min-h-32 px-3 py-2 rounded-lg bg-white/5 border border-white/20 focus:border-primary outline-none resize-none"
+                placeholder="Our goals are to..."
+              />
+            </AdminFormField>
+          </div>
         </AdminCard>
 
         <div className="border-t border-primary/30 my-6" />

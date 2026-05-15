@@ -148,47 +148,37 @@ useEffect(() => {
   });
 
 const handleSave = async () => {
-    try {
-      const data = {
-        name: formData.name,
-        team_id: formData.team_id,
-        position: formData.position,
-        number: parseInt(formData.number),
-        is_verified: false,
-      };
+  try {
+    const data = {
+      id: editingPlayer?.id,
+      name: formData.name,
+      team_id: formData.team_id,
+      position: formData.position,
+      number: parseInt(formData.number),
+    };
 
-      if (editingPlayer) {
-        await adminUpdate('players', { id: editingPlayer.id }, data);
-        addToast({ type: "success", title: "Player updated" });
-      } else {
-        await adminInsert('players', data);
-        addToast({ type: "success", title: "Player added" });
-      }
-      
-      setModalOpen(false);
-      setEditingPlayer(null);
-      setFormData({ name: "", team_id: "", position: "", number: "" });
-      try {
-        const [playersData, teamsData] = await Promise.all([
-          adminSelect('players', {}, { 
-            select: '*, teams:team_id(name)',
-            order: { field: 'name' } 
-          }) as Promise<Player[]>,
-          adminSelect('teams') as Promise<Team[]>,
-        ]);
-        setPlayers(playersData);
-        setTeams(teamsData || []);
-      } catch (err) {
-        const message = err instanceof Error ? err.message : "Failed to refresh data";
-        addToast({ type: "error", title: message });
-      }
-    } catch (err) {
-      const message = err instanceof Error ? err.message : "Failed to save player";
-      setError(message);
-      addToast({ type: "error", title: message });
+    const res = await fetch("/api/admin/update-player", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(data),
+    });
+
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.error || "Failed to save player");
     }
-  };
 
+    addToast({ type: "success", title: editingPlayer ? "Player updated" : "Player added" });
+    setModalOpen(false);
+    setEditingPlayer(null);
+    setFormData({ name: "", team_id: "", position: "", number: "" });
+    handleRetry(); // Refresh list
+  } catch (err) {
+    const message = err instanceof Error ? err.message : "Failed to save player";
+    setError(message);
+    addToast({ type: "error", title: message });
+  }
+};
   const handleRetry = async () => {
     setError(null);
     setLoadingData(true);
@@ -423,11 +413,34 @@ const handleSave = async () => {
             </AdminFormField>
             
             <AdminFormField label="Position">
-              <input
-                value={formData.position}
-                onChange={e => setFormData({ ...formData, position: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
-              />
+              <select
+                value={["Goalkeeper", "Defender", "Midfielder", "Forward", "Coach"].includes(formData.position) ? formData.position : (formData.position ? "Other" : "")}
+                onChange={e => {
+                  const val = e.target.value;
+                  if (val === "Other") {
+                    setFormData({ ...formData, position: "" });
+                  } else {
+                    setFormData({ ...formData, position: val });
+                  }
+                }}
+                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20 mb-2"
+              >
+                <option value="">Select position</option>
+                <option value="Goalkeeper">Goalkeeper</option>
+                <option value="Defender">Defender</option>
+                <option value="Midfielder">Midfielder</option>
+                <option value="Forward">Forward</option>
+                <option value="Coach">Coach</option>
+                <option value="Other">Other</option>
+              </select>
+              {(formData.position === "" || !["Goalkeeper", "Defender", "Midfielder", "Forward", "Coach"].includes(formData.position)) && (
+                <input
+                  value={formData.position}
+                  onChange={e => setFormData({ ...formData, position: e.target.value })}
+                  placeholder="Enter custom position"
+                  className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
+                />
+              )}
             </AdminFormField>
             
             <AdminFormField label="Jersey Number">

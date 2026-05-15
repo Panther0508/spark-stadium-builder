@@ -45,6 +45,7 @@ export interface Player {
   id: string;
   name: string;
   team: string;
+  team_id?: string;
   position: string;
   number: number;
   photo?: string;
@@ -347,18 +348,57 @@ export async function getPlayerById(playerId: string): Promise<Player | null> {
   try {
     const { data } = await client
       .from('players')
-      .select('*, team:team_id(name)')
+      .select('*, teams:team_id(*)')
       .eq('id', playerId)
       .single();
 
     if (data) {
-      const d = data as Record<string, unknown>;
-      const team = (d.team as { name: string })?.name || (d.team as string) || 'Unknown';
-      return { ...(d as unknown as Player), team };
+      const d = data as { 
+        id: string; 
+        name: string; 
+        number: number; 
+        position: string; 
+        photo_url?: string; 
+        bio?: string;
+        goals?: number;
+        assists?: number;
+        yellow_cards?: number;
+        red_cards?: number;
+        appearances?: number;
+        is_verified: boolean;
+        teams?: { name: string };
+      };
+      return { 
+        ...d, 
+        team: d.teams?.name || 'Unknown',
+        photo: d.photo_url // Map photo_url to photo for compatibility
+      };
     }
     return null;
   } catch {
     return null;
+  }
+}
+
+// Get player recent match events with match details
+export async function getPlayerRecentMatches(playerId: string, limit = 5) {
+  const client = getSupabaseSafe();
+  if (!client) return [];
+
+  try {
+    const { data, error } = await client
+      .from('match_events')
+      .select('*, matches(*, home_team:home_team_id(name, logo_url), away_team:away_team_id(name, logo_url))')
+      .eq('player_id', playerId)
+      .eq('is_verified', true)
+      .order('created_at', { ascending: false })
+      .limit(limit);
+
+    if (error) throw error;
+    return data || [];
+  } catch (err) {
+    console.error('Error fetching player recent matches:', err);
+    return [];
   }
 }
 
