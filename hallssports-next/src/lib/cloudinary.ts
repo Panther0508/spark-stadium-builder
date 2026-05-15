@@ -3,6 +3,7 @@ export async function uploadToCloudinary(file: File): Promise<string> {
   const uploadPreset = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
   if (!cloudName || !uploadPreset) {
+    console.error('Cloudinary config missing:', { cloudName, uploadPreset });
     throw new Error('Cloudinary configuration is missing. Please check your environment variables.');
   }
 
@@ -11,6 +12,7 @@ export async function uploadToCloudinary(file: File): Promise<string> {
   formData.append('upload_preset', uploadPreset);
 
   const url = `https://api.cloudinary.com/v1_1/${cloudName}/image/upload`;
+  console.log('Uploading to:', url);
 
   try {
     const response = await fetch(url, {
@@ -19,10 +21,13 @@ export async function uploadToCloudinary(file: File): Promise<string> {
     });
 
     if (!response.ok) {
+      const errorText = await response.text();
+      console.error('Cloudinary upload response:', response.status, errorText);
       throw new Error(`Upload failed: ${response.statusText}`);
     }
 
     const data = await response.json();
+    console.log('Cloudinary upload success:', data.secure_url);
     return data.secure_url;
   } catch (error) {
     if (error instanceof Error) {
