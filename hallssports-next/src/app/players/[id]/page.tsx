@@ -4,11 +4,13 @@ import PlayerProfileClient from "./PlayerProfileClient";
 import { PageShell } from "@/components/PageShell";
 import { GlassCard } from "@/components/GlassCard";
 import { BackButton } from "@/components/BackButton";
+import { use } from "react";
 
 const SITE_URL = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
-export async function generateMetadata({ params }: { params: { id: string } }): Promise<Metadata> {
-  const player = await getPlayerById(params.id);
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }): Promise<Metadata> {
+  const resolvedParams = await params;
+  const player = await getPlayerById(resolvedParams.id);
 
   if (!player) {
     return {
@@ -34,10 +36,11 @@ export async function generateMetadata({ params }: { params: { id: string } }): 
   };
 }
 
-export default async function PlayerProfilePage({ params }: { params: { id: string } }) {
+export default async function PlayerProfilePage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = await params;
   const [player, recentMatches] = await Promise.all([
-    getPlayerById(params.id),
-    getPlayerRecentMatches(params.id)
+    getPlayerById(resolvedParams.id),
+    getPlayerRecentMatches(resolvedParams.id)
   ]);
 
   if (!player) {
