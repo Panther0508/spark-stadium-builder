@@ -11,6 +11,7 @@ import { FeedbackButtonProvider } from "@/components/FeedbackButtonProvider";
 import { Space_Grotesk } from "next/font/google";
 import { AdminNavButton } from "@/components/AdminNavButton";
 import { AnimatePresence } from "framer-motion";
+import Script from "next/script";
 import "./globals.css";
 
 const spaceGrotesk = Space_Grotesk({
@@ -83,7 +84,7 @@ export default function RootLayout({
       <head>
         <link rel="icon" href="/favicon.ico" sizes="any" />
         <link rel="icon" href="/favicon.png" type="image/png" />
-        <script src="https://upload-widget.cloudinary.com/global/all.js" type="text/javascript" defer></script>
+        <Script src="https://upload-widget.cloudinary.com/global/all.js" strategy="lazyOnload" />
         <script
           type="application/ld+json"
           dangerouslySetInnerHTML={{ __html: jsonLdString }}

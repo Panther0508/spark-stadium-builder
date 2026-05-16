@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { Shield, LogOut, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { useState } from "react";
 
 const ADMIN_ROLES = ["scout", "media", "verifier"] as const;
 
@@ -14,20 +15,22 @@ function isRole(value: unknown): value is Role {
 
 export function AdminNavButton() {
   const router = useRouter();
-
-  const getAdminRole = (): Role | null => {
-    if (typeof window === "undefined") return null;
-    const role = localStorage.getItem("hallssports_admin_role");
-    if (role && isRole(role)) return role;
+  
+  // Initialize from localStorage during render (only on client)
+  const getInitialRole = (): Role | null => {
+    if (typeof window !== "undefined") {
+      const role = localStorage.getItem("hallssports_admin_role");
+      if (role && isRole(role)) return role;
+    }
     return null;
   };
+  
+  const [role] = useState<Role | null>(getInitialRole);
 
   const handleLogout = () => {
     localStorage.removeItem("hallssports_admin_role");
     router.push("/home");
   };
-
-  const role = getAdminRole();
 
   if (role) {
     return (

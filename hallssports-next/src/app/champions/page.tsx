@@ -10,7 +10,6 @@ import { BackButton } from "@/components/BackButton";
 import { Trophy, Award as AwardIcon } from "lucide-react";
 import { ErrorState } from "@/components/ErrorState";
 import { EmptyState } from "@/components/EmptyState";
-import { supabase } from "@/lib/supabase";
 
 interface Award {
   id: string;
@@ -18,6 +17,8 @@ interface Award {
   winner_name: string;
   value: string;
   entity_image_url: string | null;
+  winner?: string;
+  image?: string;
 }
 
 export default function ChampionsPage() {
@@ -27,13 +28,10 @@ export default function ChampionsPage() {
 
   const fetchAwards = async () => {
     try {
-      const { data, error } = await supabase
-        .from('champions')
-        .select('*')
-        .eq('is_verified', true);
-        
-      if (error) throw error;
-      setAwards(data as Award[] || []);
+      const res = await fetch("/api/champions");
+      if (!res.ok) throw new Error("Failed to load champions");
+      const data = await res.json();
+      setAwards(data.awards || []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load champions");
     } finally {
@@ -86,8 +84,8 @@ useEffect(() => {
         {awards.map((award) => (
           <GlassCard key={award.id} className="p-4 flex flex-col items-center text-center">
             <div className="relative w-20 h-20 rounded-full overflow-hidden mb-4 ring-2 ring-primary/30 bg-muted">
-              {award.entity_image_url ? (
-                <Image src={award.entity_image_url} alt={award.winner_name} fill className="object-cover" />
+              {(award.entity_image_url || award.image) ? (
+                <Image src={award.entity_image_url || award.image || ""} alt={award.winner_name || award.winner || "Winner"} fill className="object-cover" />
               ) : (
                 <div className="w-full h-full flex items-center justify-center">
                   <AwardIcon className="h-10 w-10 text-muted-foreground" />
@@ -95,7 +93,7 @@ useEffect(() => {
               )}
             </div>
             <h3 className="font-bold text-lg mb-1">{award.category}</h3>
-            <p className="text-primary font-bold text-xl">{award.winner_name}</p>
+            <p className="text-primary font-bold text-xl">{award.winner_name || award.winner}</p>
             <p className="text-sm font-semibold text-green-500 mt-2">{award.value}</p>
           </GlassCard>
         ))}

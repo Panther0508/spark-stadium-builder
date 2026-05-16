@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
 import { ShimmerLoader } from "@/components/ShimmerLoader";
@@ -34,43 +34,51 @@ const TABS: { key: Tab; label: string; icon: React.ReactNode }[] = [
 ];
 
 export default function LeadersPage() {
-  const [data, setData] = useState<Record<Tab, LeaderItem[]>>({
-    goals: [], assists: [], clean_sheets: [], corners: [], cards: []
-  });
-  const [activeTab, setActiveTab] = useState<Tab>("goals");
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+   const [data, setData] = useState<Record<Tab, LeaderItem[]>>({
+     goals: [], assists: [], clean_sheets: [], corners: [], cards: []
+   });
+   const [activeTab, setActiveTab] = useState<Tab>("goals");
+   const [loading, setLoading] = useState(true);
+   const [error, setError] = useState<string | null>(null);
 
-  const fetchLeaders = async () => {
-    if (data[activeTab].length > 0) {
-      setLoading(false);
-      return;
-    }
-    
-    setLoading(true);
-    try {
-      const functionMap: Record<Tab, string> = {
-        goals: "get_top_goals_scorers",
-        assists: "get_top_assists",
-        clean_sheets: "get_top_clean_sheets",
-        corners: "get_top_corners",
-        cards: "get_top_cards",
-      };
-      const rpcName = functionMap[activeTab];
-      const { data: result, error } = await supabase.rpc(rpcName, { limit_val: 10 });
-      if (error) throw error;
-      setData(prev => ({ ...prev, [activeTab]: result || [] }));
-    } catch (e) {
-      setError(e instanceof Error ? e.message : "Failed to load leaders");
-    } finally {
-      setLoading(false);
-    }
-  };
+   const fetchLeaders = useCallback(async () => {
+     if (data[activeTab].length > 0) {
+       setLoading(false);
+       return;
+     }
+     
+     setLoading(true);
+     try {
+       const functionMap: Record<Tab, string> = {
+         goals: "get_top_goals_scorers",
+         assists: "get_top_assists",
+         clean_sheets: "get_top_clean_sheets",
+         corners: "get_top_corners",
+         cards: "get_top_cards",
+       };
+       const rpcName = functionMap[activeTab];
+       const { data: result, error } = await supabase.rpc(rpcName, { limit_val: 10 });
+       if (error) throw error;
+       setData(prev => ({ ...prev, [activeTab]: result || [] }));
+     } catch (e) {
+       setError(e instanceof Error ? e.message : "Failed to load leaders");
+     } finally {
+       setLoading(false);
+     }
+   }, [activeTab, data]);
 
-useEffect(() => {
-     // eslint-disable-next-line react-hooks/set-state-in-effect
-     fetchLeaders();
-   }, [activeTab]);
+   // Use a ref to track if we've already fetched for this tab
+   const fetchedTabsRef = useRef<Set<Tab>>(new Set());
+   
+   useEffect(() => {
+     // Only fetch if we haven't already fetched for this tab
+     if (!fetchedTabsRef.current.has(activeTab)) {
+       fetchedTabsRef.current.add(activeTab);
+       fetchLeaders();
+     } else {
+       setLoading(false);
+     }
+   }, [activeTab, fetchLeaders]);
 
   if (loading && data[activeTab].length === 0) {
     return (

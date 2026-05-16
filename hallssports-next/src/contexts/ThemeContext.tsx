@@ -22,24 +22,37 @@ const DEFAULT_FONT_SIZE = "medium";
 const DEFAULT_REDUCE_MOTION = false;
 
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [theme, setThemeState] = useState<Theme>(DEFAULT_THEME);
-  const [fontSize, setFontSizeState] = useState<FontSize>(DEFAULT_FONT_SIZE);
-  const [reduceMotion, setReduceMotionState] = useState<boolean>(DEFAULT_REDUCE_MOTION);
+  // Initialize from localStorage during render (only on client)
+  const getInitialTheme = (): Theme => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("hallssports_theme") as Theme;
+      if (stored === "light" || stored === "dark") return stored;
+    }
+    return DEFAULT_THEME;
+  };
+  
+  const getInitialFontSize = (): FontSize => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("hallssports_fontSize") as FontSize;
+      if (stored === "small" || stored === "medium" || stored === "large") return stored;
+    }
+    return DEFAULT_FONT_SIZE;
+  };
+  
+  const getInitialReduceMotion = (): boolean => {
+    if (typeof window !== "undefined") {
+      const stored = localStorage.getItem("hallssports_reduceMotion");
+      return stored === "true";
+    }
+    return DEFAULT_REDUCE_MOTION;
+  };
+  
+  const [theme, setThemeState] = useState<Theme>(getInitialTheme);
+  const [fontSize, setFontSizeState] = useState<FontSize>(getInitialFontSize);
+  const [reduceMotion, setReduceMotionState] = useState<boolean>(getInitialReduceMotion);
 
   useEffect(() => {
-    // Read from storage on mount
-    const storedTheme = localStorage.getItem("hallssports_theme") as Theme;
-    if (storedTheme) setThemeState(storedTheme);
-    
-    const storedFontSize = localStorage.getItem("hallssports_fontSize") as FontSize;
-    if (storedFontSize) setFontSizeState(storedFontSize);
-    
-    const storedReduceMotion = localStorage.getItem("hallssports_reduceMotion");
-    if (storedReduceMotion) setReduceMotionState(storedReduceMotion === "true");
-  }, []);
-
-  useEffect(() => {
-    // Sync state if storage changes
+    // Sync state if storage changes from another tab
     const handleStorage = () => {
       const storedTheme = localStorage.getItem("hallssports_theme") as Theme;
       if (storedTheme) setThemeState(storedTheme);
