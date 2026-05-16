@@ -99,12 +99,14 @@ export default function SettingsPage() {
         { key: "organizers", value: JSON.stringify(settings.organizers) },
         { key: "contributors", value: JSON.stringify(settings.contributors) },
       ];
+      console.log('Saving settings:', updates);
       
       const res = await fetch('/api/admin/update-settings', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(updates)
       });
+      console.log('Response status:', res.status);
       
       if (!res.ok) {
         const error = await res.json();
@@ -114,6 +116,7 @@ export default function SettingsPage() {
       addToast({ type: "success", title: "Settings saved" });
     } catch (err) {
       const message = err instanceof Error ? err.message : "Failed to save";
+      console.error('Save error:', err);
       addToast({ type: "error", title: message });
     } finally {
       setSaving(false);
@@ -264,21 +267,21 @@ export default function SettingsPage() {
 
         <div className="border-t border-primary/30 my-6" />
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">Tournament Organizers</h2>
-            <p className="text-sm text-muted-foreground">The official team running the tournament</p>
-          </div>
-          <div className="space-y-3">
-            {settings.organizers.map((person, index) => (
-              <div key={index} className="glass rounded-xl p-4 flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
-                   {person.photo_url ? (
-                     <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" />
-                   ) : (
-                     <User className="w-5 h-5 text-muted-foreground m-auto" />
-                   )}
-                 </div>
+<div className="space-y-4">
+           <div className="flex items-center justify-between">
+             <h2 className="text-xl font-bold">Tournament Organizers</h2>
+             <p className="text-sm text-muted-foreground">The official team running the tournament</p>
+           </div>
+           <div className="space-y-3">
+             {settings.organizers.map((person, index) => (
+               <div key={index} className="glass rounded-xl p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-md overflow-hidden bg-black/20 flex-shrink-0">
+                    {person.photo_url ? (
+                      <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5 text-muted-foreground m-auto" />
+                    )}
+                  </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">{person.name}</div>
                   <div className="text-sm text-primary">{person.role}</div>
@@ -311,21 +314,21 @@ export default function SettingsPage() {
 
         <div className="border-t border-primary/30 my-6" />
 
-        <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-bold">Contributors</h2>
-            <p className="text-sm text-muted-foreground">People who helped build and run HallsSports</p>
-          </div>
-          <div className="space-y-3">
-            {settings.contributors.map((person, index) => (
-              <div key={index} className="glass rounded-xl p-4 flex items-center gap-3">
-                 <div className="w-10 h-10 rounded-full overflow-hidden bg-black/20 flex-shrink-0">
-                   {person.photo_url ? (
-                     <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" />
-                   ) : (
-                     <User className="w-5 h-5 text-muted-foreground m-auto" />
-                   )}
-                 </div>
+<div className="space-y-4">
+           <div className="flex items-center justify-between">
+             <h2 className="text-xl font-bold">Contributors</h2>
+             <p className="text-sm text-muted-foreground">People who helped build and run HallsSports</p>
+           </div>
+           <div className="space-y-3">
+             {settings.contributors.map((person, index) => (
+               <div key={index} className="glass rounded-xl p-4 flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-md overflow-hidden bg-black/20 flex-shrink-0">
+                    {person.photo_url ? (
+                      <img src={person.photo_url} alt={person.name} className="max-w-full max-h-full object-cover" />
+                    ) : (
+                      <User className="w-5 h-5 text-muted-foreground m-auto" />
+                    )}
+                  </div>
                 <div className="flex-1 min-w-0">
                   <div className="font-medium">{person.name}</div>
                   <div className="text-sm text-primary">{person.role}</div>

@@ -11,14 +11,15 @@ import { ErrorState } from "@/components/ErrorState";
 import { motion } from "framer-motion";
 import Image from "next/image";
 import { sanitizeHtml } from "@/lib/sanitize";
-import { supabase } from "@/lib/supabase";
 
 interface Person {
   name: string;
   role: string;
-  photo?: string;
+  photo_url?: string;
   bio?: string;
-}
+};
+
+type SelectedPerson = Person & { bio: string };
 
 interface AboutSettings {
   tournament_name: string;
@@ -35,22 +36,15 @@ export default function AboutPage() {
   const [settings, setSettings] = useState<AboutSettings | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedPerson, setSelectedPerson] = useState<(Person & { bio: string }) | null>(null);
+  const [selectedPerson, setSelectedPerson] = useState<SelectedPerson | null>(null);
 
-  const fetchSettings = useCallback(async () => {
+const fetchSettings = useCallback(async () => {
     try {
-      const { data, error } = await supabase.from('settings').select('*');
-      if (error) throw error;
-     
-      const parsed: Record<string, unknown> = {};
-      data?.forEach((s: { key: string; value: string }) => {
-        if (s.key === 'organizers' || s.key === 'contributors') {
-          try { parsed[s.key] = JSON.parse(s.value); } catch { parsed[s.key] = []; }
-        } else {
-          parsed[s.key] = s.value;
-        }
-      });
-      setSettings(parsed as unknown as AboutSettings);
+      const res = await fetch('/api/settings');
+      if (!res.ok) throw new Error('Failed to fetch settings');
+      
+      const data = await res.json();
+      setSettings(data as unknown as AboutSettings);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Failed to load settings");
     } finally {
@@ -183,33 +177,33 @@ export default function AboutPage() {
         </GlassCard>
 
 {settings?.organizers && settings.organizers.length > 0 ? (
-           <div className="space-y-4">
-             <div className="flex items-center gap-2 px-1">
-               <Heart className="h-6 w-6 text-primary" />
-               <h2 className="text-2xl font-bold">Tournament Organizers</h2>
-             </div>
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-               {settings.organizers.map((person, index) => (
-                 <button
-                   key={index}
-                   onClick={() => setSelectedPerson({ ...person, bio: (person as Person).bio || "" })}
-                   className="glass p-4 rounded-2xl text-center hover:bg-white/10 transition-colors"
-                 >
-                   <div className="relative w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 border-2 border-primary/20 bg-black/20">
-                     <Image 
-                       src={person.photo || "/placeholder-user.png"} 
-                       alt={person.name} 
-                       fill 
-                       className="object-cover" 
-                     />
-                   </div>
-                   <h3 className="font-bold text-sm truncate">{person.name}</h3>
-                   <p className="text-[10px] text-primary font-bold uppercase tracking-widest truncate">{person.role}</p>
-                 </button>
-               ))}
-             </div>
-           </div>
-         ) : (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1">
+                <Heart className="h-6 w-6 text-primary" />
+                <h2 className="text-2xl font-bold">Tournament Organizers</h2>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {settings.organizers.map((person, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedPerson({ ...person, bio: (person as Person).bio || "" })}
+                    className="glass p-4 rounded-2xl text-center hover:bg-white/10 transition-colors"
+                  >
+                    <div className="relative w-20 h-20 rounded-xl overflow-hidden mx-auto mb-3 border-2 border-primary/20 bg-black/20">
+                      <Image 
+                        src={(person as any).photo_url || "/placeholder-user.png"} 
+                        alt={person.name} 
+                        fill
+                        className="object-cover" 
+                      />
+                    </div>
+                    <h3 className="font-bold text-sm truncate">{person.name}</h3>
+                    <p className="text-[10px] text-primary font-bold uppercase tracking-widest truncate">{person.role}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : (
            <div className="space-y-4">
              <div className="flex items-center gap-2 px-1">
                <Heart className="h-6 w-6 text-primary" />
@@ -220,33 +214,33 @@ export default function AboutPage() {
          )}
 
 {settings?.contributors && settings.contributors.length > 0 ? (
-           <div className="space-y-4">
-             <div className="flex items-center gap-2 px-1">
-               <Heart className="h-6 w-6 text-primary" />
-               <h2 className="text-2xl font-bold">Contributors</h2>
-             </div>
-             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-               {settings.contributors.map((person, index) => (
-                 <button
-                   key={index}
-                   onClick={() => setSelectedPerson({ ...person, bio: (person as Person).bio || "" })}
-                   className="glass p-4 rounded-2xl text-center hover:bg-white/10 transition-colors"
-                 >
-                   <div className="relative w-16 h-16 rounded-full overflow-hidden mx-auto mb-3 border-2 border-primary/10 bg-black/20">
-                     <Image 
-                       src={person.photo || "/placeholder-user.png"} 
-                       alt={person.name} 
-                       fill 
-                       className="object-cover" 
-                     />
-                   </div>
-                   <h3 className="font-bold text-xs truncate">{person.name}</h3>
-                   <p className="text-[9px] text-primary/70 font-bold uppercase tracking-widest truncate">{person.role}</p>
-                 </button>
-               ))}
-             </div>
-           </div>
-         ) : settings?.contributors && settings.contributors.length === 0 ? (
+            <div className="space-y-4">
+              <div className="flex items-center gap-2 px-1">
+                <Heart className="h-6 w-6 text-primary" />
+                <h2 className="text-2xl font-bold">Contributors</h2>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                {settings.contributors.map((person, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setSelectedPerson({ ...person, bio: (person as Person).bio || "" })}
+                    className="glass p-4 rounded-2xl text-center hover:bg-white/10 transition-colors"
+                  >
+                    <div className="relative w-16 h-16 rounded-md overflow-hidden mx-auto mb-3 border-2 border-primary/10 bg-black/20">
+                      <Image 
+                        src={(person as any).photo_url || "/placeholder-user.png"} 
+                        alt={person.name} 
+                        fill 
+                        className="object-cover" 
+                      />
+                    </div>
+                    <h3 className="font-bold text-xs truncate">{person.name}</h3>
+                    <p className="text-[9px] text-primary/70 font-bold uppercase tracking-widest truncate">{person.role}</p>
+                  </button>
+                ))}
+              </div>
+            </div>
+          ) : settings?.contributors && settings.contributors.length === 0 ? (
            <div className="space-y-4">
              <div className="flex items-center gap-2 px-1">
                <Heart className="h-6 w-6 text-primary" />
@@ -266,8 +260,8 @@ export default function AboutPage() {
           >
             <div className="space-y-4">
               <div className="flex items-center gap-4">
-                <div className="relative w-16 h-16 rounded-full overflow-hidden">
-                  <Image src={selectedPerson.photo || "/placeholder-user.png"} alt={selectedPerson.name} fill className="object-cover" />
+                <div className="relative w-16 h-16 rounded-md overflow-hidden">
+                  <Image src={(selectedPerson as any).photo_url || "/placeholder-user.png"} alt={selectedPerson.name} fill className="object-cover" />
                 </div>
                 <div>
                   <h3 className="font-bold text-xl">{selectedPerson.name}</h3>

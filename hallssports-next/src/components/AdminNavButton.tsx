@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { Shield, LogOut, Lock } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 
 const ADMIN_ROLES = ["scout", "media", "verifier"] as const;
 
@@ -15,17 +15,20 @@ function isRole(value: unknown): value is Role {
 
 export function AdminNavButton() {
   const router = useRouter();
+  const [role, setRole] = useState<Role | null>(null);
+  // Use a ref to track if we've already synced to avoid setState during render
+  const initializedRef = useRef(false);
   
-  // Initialize from localStorage during render (only on client)
-  const getInitialRole = (): Role | null => {
-    if (typeof window !== "undefined") {
-      const role = localStorage.getItem("hallssports_admin_role");
-      if (role && isRole(role)) return role;
+  useEffect(() => {
+    if (!initializedRef.current) {
+      const storedRole = localStorage.getItem("hallssports_admin_role");
+      if (storedRole && isRole(storedRole)) {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
+        setRole(storedRole);
+      }
+      initializedRef.current = true;
     }
-    return null;
-  };
-  
-  const [role] = useState<Role | null>(getInitialRole);
+  }, []);
 
   const handleLogout = () => {
     localStorage.removeItem("hallssports_admin_role");

@@ -32,12 +32,23 @@ export function StatusBadge({ status, minute, isPolling }: { status: MatchStatus
   </span>;
 }
 
-export function TeamLogo({ name, color, size = "md" }: { name: string; color: string; size?: "sm" | "md" | "lg" }) {
+export function TeamLogo({ name, color, logoUrl, size = "md" }: { name: string; color: string; logoUrl?: string; size?: "sm" | "md" | "lg" }) {
   const sizeClasses = {
-    sm: "h-6 w-6 text-[8px]",
-    md: "h-10 w-10 text-xs",
-    lg: "h-16 w-16 text-lg",
+    sm: "h-6 w-6",
+    md: "h-10 w-10",
+    lg: "h-16 w-16",
   };
+
+  if (logoUrl) {
+    return (
+      <img
+        src={logoUrl}
+        alt={name}
+        className={`${sizeClasses[size]} rounded-full object-cover ring-1 ring-white/20`}
+        style={{ boxShadow: `0 0 16px ${color}66` }}
+      />
+    );
+  }
 
   return (
     <div

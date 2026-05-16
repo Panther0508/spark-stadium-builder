@@ -21,6 +21,7 @@ type Highlight = {
   match_id?: string;
   is_verified?: boolean;
   created_at: string;
+  category?: string;
 };
 
 export default function HighlightsPage() {
@@ -35,6 +36,7 @@ export default function HighlightsPage() {
     title: "",
     media_url: "",
     match_id: "",
+    category: "Goal",
   });
   const [submitting, setSubmitting] = useState(false);
 
@@ -88,6 +90,7 @@ export default function HighlightsPage() {
           media_url: formData.media_url,
           media_type: 'video',
           match_id: formData.match_id || undefined,
+          category: formData.category,
         })
       });
       
@@ -96,7 +99,7 @@ export default function HighlightsPage() {
         throw new Error(error.error || 'Failed to save highlight');
       }
       
-      setFormData({ title: "", media_url: "", match_id: "" });
+      setFormData({ title: "", media_url: "", match_id: "", category: "Goal" });
       setShowForm(false);
       setEditingId(null);
       const data = await getHighlights();
@@ -115,6 +118,7 @@ export default function HighlightsPage() {
       title: h.title || "",
       media_url: h.media_url,
       match_id: h.match_id || "",
+      category: (h as any).category || "Goal",
     });
     setShowForm(true);
   };
@@ -147,15 +151,15 @@ export default function HighlightsPage() {
         <div className="flex items-center justify-between">
           <h1 className="text-2xl font-bold">Manage Highlights</h1>
           <button
-            onClick={() => {
-              if (showForm) {
-                setShowForm(false);
-                setEditingId(null);
-                setFormData({ title: "", media_url: "", match_id: "" });
-              } else {
-                setShowForm(true);
-              }
-            }}
+onClick={() => {
+               if (showForm) {
+                 setShowForm(false);
+                 setEditingId(null);
+                 setFormData({ title: "", media_url: "", match_id: "", category: "Goal" });
+               } else {
+                 setShowForm(true);
+               }
+             }}
             className="px-4 py-2 bg-primary text-primary-foreground rounded-lg flex items-center gap-2"
           >
             <Plus className="w-4 h-4" />
@@ -192,17 +196,31 @@ export default function HighlightsPage() {
                     placeholder="Paste YouTube link (e.g., https://youtu.be/...)"
                   />
                 </div>
-                <div>
-                  <label className="block text-sm font-medium mb-1.5">Match ID (optional)</label>
-                  <input
-                    type="text"
-                    value={formData.match_id}
-                    onChange={e => setFormData({ ...formData, match_id: e.target.value })}
-                    className="w-full px-3 py-2 rounded-lg glass border border-white/20 bg-white/5 focus:border-primary focus:outline-none"
-                    placeholder="Related match UUID"
-                  />
-                </div>
-              </div>
+<div>
+                   <label className="block text-sm font-medium mb-1.5">Match ID (optional)</label>
+                   <input
+                     type="text"
+                     value={formData.match_id}
+                     onChange={e => setFormData({ ...formData, match_id: e.target.value })}
+                     className="w-full px-3 py-2 rounded-lg glass border border-white/20 bg-white/5 focus:border-primary focus:outline-none"
+                     placeholder="Related match UUID"
+                   />
+                 </div>
+                 <div>
+                   <label className="block text-sm font-medium mb-1.5">Category</label>
+                   <select
+                     value={formData.category}
+                     onChange={e => setFormData({ ...formData, category: e.target.value })}
+                     className="w-full px-3 py-2 rounded-lg glass border border-white/20 bg-white/5 focus:border-primary focus:outline-none"
+                   >
+                     <option value="Goal">Goal</option>
+                     <option value="Save">Save</option>
+                     <option value="Skill">Skill</option>
+                     <option value="Interview">Interview</option>
+                     <option value="Other">Other</option>
+                   </select>
+                 </div>
+               </div>
               <button
                 type="submit"
                 disabled={submitting}

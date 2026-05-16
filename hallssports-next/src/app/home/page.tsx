@@ -24,6 +24,8 @@ type FeaturedMatch = {
   match_date: string;
   venue?: string;
   featured?: boolean;
+  home_team_logo?: string;
+  away_team_logo?: string;
 };
 
 type UpcomingMatch = {
@@ -33,6 +35,8 @@ type UpcomingMatch = {
   match_date: string;
   venue?: string;
   status: string;
+  home_team_logo?: string;
+  away_team_logo?: string;
 };
 
 type LiveMatch = {
@@ -43,6 +47,8 @@ type LiveMatch = {
   away_score?: number;
   minute?: number;
   status: string;
+  home_team_logo?: string;
+  away_team_logo?: string;
 };
 
 type ChatMessage = {
@@ -62,6 +68,7 @@ export default function HomePage() {
   const [showOnboarding, setShowOnboarding] = useState(false);
   const [aiInsight, setAiInsight] = useState<string | null>(null);
   const [tournamentLogo, setTournamentLogo] = useState<string | null>(null);
+  const [stats, setStats] = useState({ goalsScored: 0, matchesToday: 0, playersCount: 0 });
 
   useEffect(() => {
     const fetchData = async () => {
@@ -74,6 +81,13 @@ export default function HomePage() {
         if (settingsRes.ok) {
           const settings = await settingsRes.json();
           setTournamentLogo(settings.tournament_logo);
+        }
+
+        // Fetch real stats
+        const statsRes = await fetch("/api/stats");
+        if (statsRes.ok) {
+          const statsData = await statsRes.json();
+          setStats(statsData);
         }
 
         // Fetch AI Insight (simulated or real)
@@ -213,51 +227,51 @@ export default function HomePage() {
         </section>
       )}
 
-      {/* Featured Match */}
-      {featuredMatch && (
-        <section className="mb-8">
-          <GlassCard className="p-6">
-            <div className="flex items-center justify-between mb-2">
-              <h2 className="text-xl font-bold">Featured Match</h2>
-              {featuredMatch.status === "live" && (
-                <span className="text-sm text-primary flex items-center gap-1">
-                  <span className="relative flex h-2 w-2">
-                    <span className="absolute inline-flex h-full w-full rounded-full bg-live animate-live-pulse" />
-                    <span className="relative inline-flex h-2 w-2 rounded-full bg-live" />
-                  </span>
-                  LIVE
-                </span>
-              )}
-            </div>
-            <div className="flex items-center justify-center gap-6 py-4">
-              <div className="text-center">
-                <TeamLogo name={(featuredMatch.home_team || "UNK").substring(0,3)} color="#00A859" />
-                <div className="mt-2 text-lg font-bold">{featuredMatch.home_team || "Unknown"}</div>
-              </div>
-              <div className="text-4xl font-black">
-                {featuredMatch.status === "scheduled" ? "—" : `${featuredMatch.home_score ?? 0} : ${featuredMatch.away_score ?? 0}`}
-              </div>
-              <div className="text-center">
-                <TeamLogo name={(featuredMatch.away_team || "UNK").substring(0,3)} color="#CC0000" />
-                <div className="mt-2 text-lg font-bold">{featuredMatch.away_team || "Unknown"}</div>
-              </div>
-            </div>
-            <div className="text-center text-sm text-muted-foreground">
-              {featuredMatch.venue && <div>{featuredMatch.venue}</div>}
-              {featuredMatch.match_date && (
-                <div>{format(new Date(featuredMatch.match_date), "MMM d, h:mm a")}</div>
-              )}
-            </div>
-            {featuredMatch.status === "live" && (
-              <div className="text-center mt-4">
-                <Link href={`/match/${featuredMatch.id}`} className="text-primary underline text-sm">
-                  View live details &rarr;
-                </Link>
-              </div>
-            )}
-          </GlassCard>
-        </section>
-      )}
+{/* Featured Match */}
+       {featuredMatch && (
+         <section className="mb-8">
+           <GlassCard className="p-6">
+             <div className="flex items-center justify-between mb-2">
+               <h2 className="text-xl font-bold">Featured Match</h2>
+               {featuredMatch.status === "live" && (
+                 <span className="text-sm text-primary flex items-center gap-1">
+                   <span className="relative flex h-2 w-2">
+                     <span className="absolute inline-flex h-full w-full rounded-full bg-live animate-live-pulse" />
+                     <span className="relative inline-flex h-2 w-2 rounded-full bg-live" />
+                   </span>
+                   LIVE
+                 </span>
+               )}
+             </div>
+             <div className="flex items-center justify-center gap-6 py-4">
+               <div className="text-center">
+                 <TeamLogo name={featuredMatch.home_team || "UNK"} color="#00A859" logoUrl={featuredMatch.home_team_logo} />
+                 <div className="mt-2 text-lg font-bold">{featuredMatch.home_team || "Unknown"}</div>
+               </div>
+               <div className="text-4xl font-black">
+                 {featuredMatch.status === "scheduled" ? "VS" : `${featuredMatch.home_score ?? 0} : ${featuredMatch.away_score ?? 0}`}
+               </div>
+               <div className="text-center">
+                 <TeamLogo name={featuredMatch.away_team || "UNK"} color="#CC0000" logoUrl={featuredMatch.away_team_logo} />
+                 <div className="mt-2 text-lg font-bold">{featuredMatch.away_team || "Unknown"}</div>
+               </div>
+             </div>
+             <div className="text-center text-sm text-muted-foreground">
+               {featuredMatch.venue && <div>{featuredMatch.venue}</div>}
+               {featuredMatch.match_date && (
+                 <div>{format(new Date(featuredMatch.match_date), "MMM d, h:mm a")}</div>
+               )}
+             </div>
+             {featuredMatch.status === "live" && (
+               <div className="text-center mt-4">
+                 <Link href={`/match/${featuredMatch.id}`} className="text-primary underline text-sm">
+                   View live details &rarr;
+                 </Link>
+               </div>
+             )}
+           </GlassCard>
+         </section>
+       )}
 
       {/* Live Matches Grid */}
       {liveMatches.length > 0 && (
@@ -337,29 +351,29 @@ export default function HomePage() {
             <div className="flex items-center gap-3">
               <Users className="h-6 w-6 text-primary" />
               <div>
-                <div className="text-lg font-bold">2.4K</div>
-                <div className="text-xs text-muted-foreground">Fans Online</div>
+                <div className="text-lg font-bold">{stats.playersCount}</div>
+                <div className="text-xs text-muted-foreground">Players</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <Trophy className="h-6 w-6 text-primary" />
               <div>
-                <div className="text-lg font-bold">12</div>
+                <div className="text-lg font-bold">{stats.matchesToday}</div>
                 <div className="text-xs text-muted-foreground">Matches Today</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <BarChart3 className="h-6 w-6 text-primary" />
               <div>
-                <div className="text-lg font-bold">45</div>
+                <div className="text-lg font-bold">{stats.goalsScored}</div>
                 <div className="text-xs text-muted-foreground">Goals Scored</div>
               </div>
             </div>
             <div className="flex items-center gap-3">
               <MessageCircle className="h-6 w-6 text-primary" />
               <div>
-                <div className="text-lg font-bold">1.2K</div>
-                <div className="text-xs text-muted-foreground">Chat Messages</div>
+                <div className="text-lg font-bold">Live</div>
+                <div className="text-xs text-muted-foreground">Community</div>
               </div>
             </div>
           </div>

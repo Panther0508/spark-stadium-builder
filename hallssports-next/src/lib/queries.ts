@@ -21,6 +21,8 @@ export interface Match {
   minute?: number;
   home_team_id?: string;
   away_team_id?: string;
+  home_team_logo?: string;
+  away_team_logo?: string;
 }
 
 // Chat message types

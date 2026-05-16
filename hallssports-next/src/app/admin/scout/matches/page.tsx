@@ -59,7 +59,7 @@ const fetchData = useCallback(async () => {
           select: '*, home_team:home_team_id(name), away_team:away_team_id(name)',
           order: { field: 'match_date', ascending: false } 
         }) as Promise<Match[]>,
-        adminSelect('teams') as Promise<Team[]>,
+        adminSelect('teams', {}, {}) as Promise<Team[]>,
       ]);
       return { matchesData, teamsData };
     } catch (err) {
@@ -100,8 +100,16 @@ useEffect(() => {
 
   const handleSave = async () => {
     try {
-      if (!formData.home_team_id || !formData.away_team_id || !formData.match_date) {
-        throw new Error("Missing required fields");
+      console.log('handleSave called with formData:', formData);
+      
+      if (!formData.home_team_id || formData.home_team_id === "") {
+        throw new Error("Home team is required");
+      }
+      if (!formData.away_team_id || formData.away_team_id === "") {
+        throw new Error("Away team is required");
+      }
+      if (!formData.match_date || formData.match_date === "") {
+        throw new Error("Match date is required");
       }
 
       const data = {
@@ -113,7 +121,10 @@ useEffect(() => {
         image_url: formData.image_url,
         featured: formData.featured,
         community_visible: formData.community_visible,
+        status: (editingMatch?.status as string) || "scheduled",
       };
+      
+      console.log('Sending to API:', data);
 
       const res = await fetch('/api/admin/update-match', {
         method: 'POST',
@@ -331,46 +342,46 @@ useEffect(() => {
           size="lg"
         >
           <div className="space-y-4">
-            <AdminFormField label="Home Team">
-              <select
-                value={formData.home_team_id}
-                onChange={e => setFormData({ ...formData, home_team_id: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
-              >
-                <option value="">Select team</option>
-                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </AdminFormField>
+<AdminFormField label="Home Team">
+               <select
+                 value={formData.home_team_id}
+                 onChange={e => setFormData({ ...formData, home_team_id: e.target.value })}
+                 className="w-full px-3 py-2 rounded-lg glass border border-white/20 text-foreground"
+               >
+                 <option value="" className="bg-background text-foreground">Select team</option>
+                 {teams.map(t => <option key={t.id} value={t.id} className="bg-background text-foreground">{t.name}</option>)}
+               </select>
+             </AdminFormField>
+             
+             <AdminFormField label="Away Team">
+               <select
+                 value={formData.away_team_id}
+                 onChange={e => setFormData({ ...formData, away_team_id: e.target.value })}
+                 className="w-full px-3 py-2 rounded-lg glass border border-white/20 text-foreground"
+               >
+                 <option value="" className="bg-background text-foreground">Select team</option>
+                 {teams.map(t => <option key={t.id} value={t.id} className="bg-background text-foreground">{t.name}</option>)}
+               </select>
+             </AdminFormField>
             
-            <AdminFormField label="Away Team">
-              <select
-                value={formData.away_team_id}
-                onChange={e => setFormData({ ...formData, away_team_id: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
-              >
-                <option value="">Select team</option>
-                {teams.map(t => <option key={t.id} value={t.id}>{t.name}</option>)}
-              </select>
-            </AdminFormField>
-            
-            <AdminFormField label="Date & Time">
-              <input
-                type="datetime-local"
-                value={formData.match_date}
-                onChange={e => setFormData({ ...formData, match_date: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
-              />
-            </AdminFormField>
-            
-            <AdminFormField label="Venue">
-              <input
-                type="text"
-                value={formData.venue}
-                onChange={e => setFormData({ ...formData, venue: e.target.value })}
-                className="w-full px-3 py-2 rounded-lg bg-white/5 border border-white/20"
-                placeholder="Stadium name"
-              />
-            </AdminFormField>
+<AdminFormField label="Date & Time">
+               <input
+                 type="datetime-local"
+                 value={formData.match_date}
+                 onChange={e => setFormData({ ...formData, match_date: e.target.value })}
+                 className="w-full px-3 py-2 rounded-lg glass border border-white/20 text-foreground"
+               />
+             </AdminFormField>
+             
+             <AdminFormField label="Venue">
+               <input
+                 type="text"
+                 value={formData.venue}
+                 onChange={e => setFormData({ ...formData, venue: e.target.value })}
+                 className="w-full px-3 py-2 rounded-lg glass border border-white/20 text-foreground"
+                 placeholder="Stadium name"
+               />
+             </AdminFormField>
 
 <AdminFormField label="Cover Image">
                <ImageUpload 

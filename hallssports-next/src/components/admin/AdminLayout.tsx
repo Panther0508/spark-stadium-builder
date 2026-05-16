@@ -106,26 +106,19 @@ export function AdminLayout({ children, role }: Props) {
         <SidebarContent navItems={navItems} pathname={pathname} onLogout={handleLogout} />
       </aside>
 
-      <div className="lg:pl-64 h-screen flex flex-col">
-        <header className="glass h-16 border-b border-white/10 flex items-center justify-between px-4 lg:px-6 flex-shrink-0">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(true)}
-              className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
-              aria-label="Open sidebar"
-            >
-              <Menu className="w-5 h-5" />
-            </button>
-            <h1 className="text-lg font-semibold text-foreground">{pageTitle}</h1>
-          </div>
-          <button
-            onClick={() => router.push("/home")}
-            className="flex items-center gap-2 px-3 py-1.5 rounded-lg hover:bg-white/10 transition-colors text-sm min-h-[44px]"
-          >
-            <Eye className="w-4 h-4" />
-            Back to Public View
-          </button>
-        </header>
+<div className="lg:pl-64 h-screen flex flex-col">
+         <header className="glass h-16 border-b border-white/10 flex items-center justify-between px-4 lg:px-6 flex-shrink-0">
+           <div className="flex items-center gap-3">
+             <button
+               onClick={() => setSidebarOpen(true)}
+               className="lg:hidden p-2 rounded-lg hover:bg-white/10 transition-colors min-h-[44px] min-w-[44px] flex items-center justify-center"
+               aria-label="Open sidebar"
+             >
+               <Menu className="w-5 h-5" />
+             </button>
+             <h1 className="text-lg font-semibold text-foreground">{pageTitle}</h1>
+           </div>
+         </header>
 
         <main className="flex-1 p-4 lg:p-6 overflow-y-auto">
           {children}

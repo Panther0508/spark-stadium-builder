@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useRef } from 'react';
+import React, { useState, useCallback, useRef, useId } from 'react';
 import { uploadToCloudinary } from '@/lib/cloudinary';
 
 type ImageUploadProps = {
@@ -9,17 +9,20 @@ type ImageUploadProps = {
 };
 
 export default function ImageUpload({ value, currentUrl, onUpload, label }: ImageUploadProps) {
+  const uniqueId = useId();
   const url = value ?? currentUrl ?? "";
   const [previewUrl, setPreviewUrl] = useState<string | null>(() => url || null);
-  const [prevCurrentUrl, setPrevCurrentUrl] = useState<string | null>(url);
+  // Store the previous value to avoid unnecessary updates
+  const prevValueRef = useRef<string | null>(null);
 
-/* eslint-disable react-hooks/set-state-in-effect */
+  // Sync previewUrl when value/currentUrl changes (from parent)
   React.useEffect(() => {
-    if (currentUrl !== prevCurrentUrl) {
-      setPreviewUrl(currentUrl ?? null);
-      setPrevCurrentUrl(currentUrl ?? null);
+    const newVal = value ?? currentUrl ?? "";
+    if (newVal && newVal !== prevValueRef.current) {
+      prevValueRef.current = newVal;
+      setPreviewUrl(newVal);
     }
-  }, [currentUrl, prevCurrentUrl]);
+  }, [value, currentUrl]);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -44,17 +47,18 @@ export default function ImageUpload({ value, currentUrl, onUpload, label }: Imag
     setLoading(true);
     setError(null);
 
-try {
-       const url = await uploadToCloudinary(file);
-       if (url) {
-         setPreviewUrl(url);
-         onUpload(url);
-       } else {
-         throw new Error('No URL returned from Cloudinary');
-       }
-     } catch {
-       showToast('Upload failed. Please try again.');
-     } finally {
+    try {
+      const url = await uploadToCloudinary(file);
+      if (url) {
+        setPreviewUrl(url);
+        onUpload(url);
+      } else {
+        throw new Error('No URL returned from Cloudinary');
+      }
+    } catch (err: unknown) {
+      const errorMsg = err instanceof Error ? err.message : 'Upload failed. Please try again.';
+      showToast(errorMsg);
+    } finally {
       setLoading(false);
       // Reset file input
       if (fileInputRef.current) {
@@ -63,17 +67,18 @@ try {
     }
   };
 
-  return (
+return (
     <div className="relative w-full">
       {/* Preview */}
-      <div className="aspect-w-16 aspect-h-9 mb-4 rounded-2xl border-2 border-white/20 backdrop-blur-xl bg-white/10 p-4 relative">
-{previewUrl ? (
-<img
-              src={previewUrl}
-              alt="Preview"
-              className="w-full h-full object-cover rounded-xl"
-            />
-         ) : (
+      <div className="aspect-w-16 aspect-h-9 mb-4 rounded-2xl border-2 border-white/20 backdrop-blur-xl bg-white/10 p-4 relative min-h-[120px]">
+        {previewUrl ? (
+          <img
+            src={previewUrl}
+            alt="Preview"
+            className="absolute inset-0 w-full h-full object-cover rounded-xl"
+            onError={() => setPreviewUrl(null)}
+          />
+        ) : (
           <div className="flex flex-col items-center justify-center h-full">
             {/* Placeholder football icon - using a simple emoji for now */}
             <div className="text-6xl text-white/50 mb-2">⚽</div>
@@ -98,7 +103,7 @@ try {
       {/* Choose file button */}
       <div className="mt-4">
         <label
-          htmlFor="upload-input"
+          htmlFor={`upload-input-${uniqueId}`}
           className="inline-flex items-center px-6 py-3 bg-green-500/20 backdrop-blur-xl border border-green-500/40 text-green-400 rounded-xl hover:bg-green-500/30 transition-colors cursor-pointer"
         >
           <svg className="w-5 h-5 mr-2" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -108,11 +113,12 @@ try {
         </label>
         <input
           type="file"
-          id="upload-input"
+          id={`upload-input-${uniqueId}`}
           accept="image/*"
           ref={fileInputRef}
           onChange={handleFileChange}
           className="hidden"
+          aria-label={label}
         />
       </div>
     </div>

@@ -5,18 +5,16 @@ import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 export async function POST(request: Request) {
   try {
     const supabase = getSupabaseAdminClient();
-    const { id, ...data }: { id?: string; [key: string]: any } = await request.json();
+    const { id, category = "Other", ...data }: { id?: string; category?: string; [key: string]: any } = await request.json();
 
     if (id) {
-      // Update
       const { error } = await (supabase.from("highlights") as any)
-        .update(data)
+        .update({ ...data, category })
         .eq("id", id);
       if (error) throw error;
     } else {
-      // Insert
       const { error } = await (supabase.from("highlights") as any)
-        .insert({ ...data, is_verified: false });
+        .insert({ ...data, category, is_verified: true });
       if (error) throw error;
     }
 

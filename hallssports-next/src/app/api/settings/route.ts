@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { supabase } from "@/lib/supabase";
+import { getSupabaseAdminClient } from "@/lib/supabaseAdmin";
 
 interface Setting {
   key: string;
@@ -8,9 +8,7 @@ interface Setting {
 
 export async function GET() {
   try {
-    if (!supabase) {
-      throw new Error("Supabase client not initialized");
-    }
+    const supabase = getSupabaseAdminClient();
 
     const { data, error } = await supabase.from("settings").select("*");
 
@@ -20,10 +18,19 @@ export async function GET() {
     }
 
     // Convert array of {key, value} to object map
+    // Pre-parse organizers/contributors JSON arrays
     const settingsMap = (data as Setting[] | null)?.reduce((acc, row) => {
-      acc[row.key] = row.value;
+      if (row.key === 'organizers' || row.key === 'contributors') {
+        try {
+          acc[row.key] = JSON.parse(row.value);
+        } catch {
+          acc[row.key] = [];
+        }
+      } else {
+        acc[row.key] = row.value;
+      }
       return acc;
-    }, {} as Record<string, string>) || {};
+    }, {} as Record<string, unknown>) || {};
 
     return NextResponse.json(settingsMap);
   } catch (err) {

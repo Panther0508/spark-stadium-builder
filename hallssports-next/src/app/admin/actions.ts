@@ -45,7 +45,7 @@ export async function adminDelete(table: string, filters: Filter) {
 export async function adminSelect(table: string, filters?: Filter, options?: { select?: string; order?: { field: string; ascending?: boolean } }) {
   const supabase = getSupabaseAdminClient();
   let query = supabase.from(table).select(options?.select || '*');
-  if (filters) {
+  if (filters && Object.keys(filters).length > 0) {
     query = (query as any).match(filters);
   }
   if (options?.order) {
@@ -62,7 +62,7 @@ export async function adminSelect(table: string, filters?: Filter, options?: { s
 export async function adminCount(table: string, filters?: Filter) {
   const supabase = getSupabaseAdminClient();
   let query = supabase.from(table).select('*', { count: 'exact', head: true });
-  if (filters) {
+  if (filters && Object.keys(filters).length > 0) {
     query = (query as any).match(filters);
   }
   const { count, error } = await query;
