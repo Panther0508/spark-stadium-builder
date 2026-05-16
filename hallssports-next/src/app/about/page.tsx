@@ -109,35 +109,59 @@ export default function AboutPage() {
             </div>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {settings?.about_mission && (
-              <div className="space-y-2">
-                <h3 className="font-bold flex items-center gap-2">
-                  <div className="w-1.5 h-4 bg-primary rounded-full" />
-                  Mission
-                </h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{settings.about_mission}</p>
-              </div>
-            )}
-            {settings?.about_vision && (
-              <div className="space-y-2">
-                <h3 className="font-bold flex items-center gap-2">
-                  <div className="w-1.5 h-4 bg-primary rounded-full" />
-                  Vision
-                </h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{settings.about_vision}</p>
-              </div>
-            )}
-            {settings?.about_goals && (
-              <div className="space-y-2">
-                <h3 className="font-bold flex items-center gap-2">
-                  <div className="w-1.5 h-4 bg-primary rounded-full" />
-                  Goals
-                </h3>
-                <p className="text-muted-foreground text-sm leading-relaxed">{settings.about_goals}</p>
-              </div>
-            )}
-          </div>
+<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+             {settings?.about_mission ? (
+               <div className="space-y-2">
+                 <h3 className="font-bold flex items-center gap-2">
+                   <div className="w-1.5 h-4 bg-primary rounded-full" />
+                   Mission
+                 </h3>
+                 <p className="text-muted-foreground text-sm leading-relaxed">{settings.about_mission}</p>
+               </div>
+             ) : (
+               <div className="space-y-2">
+                 <h3 className="font-bold flex items-center gap-2">
+                   <div className="w-1.5 h-4 bg-primary rounded-full" />
+                   Mission
+                 </h3>
+                 <p className="text-muted-foreground text-sm leading-relaxed italic">Content coming soon</p>
+               </div>
+             )}
+             {settings?.about_vision ? (
+               <div className="space-y-2">
+                 <h3 className="font-bold flex items-center gap-2">
+                   <div className="w-1.5 h-4 bg-primary rounded-full" />
+                   Vision
+                 </h3>
+                 <p className="text-muted-foreground text-sm leading-relaxed">{settings.about_vision}</p>
+               </div>
+             ) : (
+               <div className="space-y-2">
+                 <h3 className="font-bold flex items-center gap-2">
+                   <div className="w-1.5 h-4 bg-primary rounded-full" />
+                   Vision
+                 </h3>
+                 <p className="text-muted-foreground text-sm leading-relaxed italic">Content coming soon</p>
+               </div>
+             )}
+             {settings?.about_goals ? (
+               <div className="space-y-2">
+                 <h3 className="font-bold flex items-center gap-2">
+                   <div className="w-1.5 h-4 bg-primary rounded-full" />
+                   Goals
+                 </h3>
+                 <p className="text-muted-foreground text-sm leading-relaxed">{settings.about_goals}</p>
+               </div>
+             ) : (
+               <div className="space-y-2">
+                 <h3 className="font-bold flex items-center gap-2">
+                   <div className="w-1.5 h-4 bg-primary rounded-full" />
+                   Goals
+                 </h3>
+                 <p className="text-muted-foreground text-sm leading-relaxed italic">Content coming soon</p>
+               </div>
+             )}
+           </div>
         </GlassCard>
 
         {/* Pantero CTA */}
@@ -158,63 +182,79 @@ export default function AboutPage() {
           </div>
         </GlassCard>
 
-        {settings?.organizers && settings.organizers.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 px-1">
-              <Heart className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-bold">Tournament Organizers</h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {settings.organizers.map((person, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedPerson({ ...person, bio: (person as Person).bio || "" })}
-                  className="glass p-4 rounded-2xl text-center hover:bg-white/10 transition-colors"
-                >
-                  <div className="relative w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 border-2 border-primary/20 bg-black/20">
-                    <Image 
-                      src={person.photo || "/placeholder-user.png"} 
-                      alt={person.name} 
-                      fill 
-                      className="object-cover" 
-                    />
-                  </div>
-                  <h3 className="font-bold text-sm truncate">{person.name}</h3>
-                  <p className="text-[10px] text-primary font-bold uppercase tracking-widest truncate">{person.role}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+{settings?.organizers && settings.organizers.length > 0 ? (
+           <div className="space-y-4">
+             <div className="flex items-center gap-2 px-1">
+               <Heart className="h-6 w-6 text-primary" />
+               <h2 className="text-2xl font-bold">Tournament Organizers</h2>
+             </div>
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               {settings.organizers.map((person, index) => (
+                 <button
+                   key={index}
+                   onClick={() => setSelectedPerson({ ...person, bio: (person as Person).bio || "" })}
+                   className="glass p-4 rounded-2xl text-center hover:bg-white/10 transition-colors"
+                 >
+                   <div className="relative w-20 h-20 rounded-full overflow-hidden mx-auto mb-3 border-2 border-primary/20 bg-black/20">
+                     <Image 
+                       src={person.photo || "/placeholder-user.png"} 
+                       alt={person.name} 
+                       fill 
+                       className="object-cover" 
+                     />
+                   </div>
+                   <h3 className="font-bold text-sm truncate">{person.name}</h3>
+                   <p className="text-[10px] text-primary font-bold uppercase tracking-widest truncate">{person.role}</p>
+                 </button>
+               ))}
+             </div>
+           </div>
+         ) : (
+           <div className="space-y-4">
+             <div className="flex items-center gap-2 px-1">
+               <Heart className="h-6 w-6 text-primary" />
+               <h2 className="text-2xl font-bold">Tournament Organizers</h2>
+             </div>
+             <p className="text-muted-foreground italic">Organizers list coming soon</p>
+           </div>
+         )}
 
-        {settings?.contributors && settings.contributors.length > 0 && (
-          <div className="space-y-4">
-            <div className="flex items-center gap-2 px-1">
-              <Heart className="h-6 w-6 text-primary" />
-              <h2 className="text-2xl font-bold">Contributors</h2>
-            </div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              {settings.contributors.map((person, index) => (
-                <button
-                  key={index}
-                  onClick={() => setSelectedPerson({ ...person, bio: (person as Person).bio || "" })}
-                  className="glass p-4 rounded-2xl text-center hover:bg-white/10 transition-colors"
-                >
-                  <div className="relative w-16 h-16 rounded-full overflow-hidden mx-auto mb-3 border-2 border-primary/10 bg-black/20">
-                    <Image 
-                      src={person.photo || "/placeholder-user.png"} 
-                      alt={person.name} 
-                      fill 
-                      className="object-cover" 
-                    />
-                  </div>
-                  <h3 className="font-bold text-xs truncate">{person.name}</h3>
-                  <p className="text-[9px] text-primary/70 font-bold uppercase tracking-widest truncate">{person.role}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+{settings?.contributors && settings.contributors.length > 0 ? (
+           <div className="space-y-4">
+             <div className="flex items-center gap-2 px-1">
+               <Heart className="h-6 w-6 text-primary" />
+               <h2 className="text-2xl font-bold">Contributors</h2>
+             </div>
+             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+               {settings.contributors.map((person, index) => (
+                 <button
+                   key={index}
+                   onClick={() => setSelectedPerson({ ...person, bio: (person as Person).bio || "" })}
+                   className="glass p-4 rounded-2xl text-center hover:bg-white/10 transition-colors"
+                 >
+                   <div className="relative w-16 h-16 rounded-full overflow-hidden mx-auto mb-3 border-2 border-primary/10 bg-black/20">
+                     <Image 
+                       src={person.photo || "/placeholder-user.png"} 
+                       alt={person.name} 
+                       fill 
+                       className="object-cover" 
+                     />
+                   </div>
+                   <h3 className="font-bold text-xs truncate">{person.name}</h3>
+                   <p className="text-[9px] text-primary/70 font-bold uppercase tracking-widest truncate">{person.role}</p>
+                 </button>
+               ))}
+             </div>
+           </div>
+         ) : settings?.contributors && settings.contributors.length === 0 ? (
+           <div className="space-y-4">
+             <div className="flex items-center gap-2 px-1">
+               <Heart className="h-6 w-6 text-primary" />
+               <h2 className="text-2xl font-bold">Contributors</h2>
+             </div>
+             <p className="text-muted-foreground italic">Contributors list coming soon</p>
+           </div>
+         ) : null}
 
 
 

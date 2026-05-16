@@ -100,27 +100,27 @@ export default function DeveloperContent() {
   const [scanComplete, setScanComplete] = useState(false);
   const [issues, setIssues] = useState<Array<{ type: string; text: string }>>([]);
   const [sortBy, setSortBy] = useState({ key: "views", dir: "desc" });
-   const [_errorModal, _setErrorModal] = useState(false);
-   const [backupModal, setBackupModal] = useState(false);
-   const [_lastBackupTime, setLastBackupTime] = useState<number | null>(null);
-   const [data, setData] = useState<DevData | null>(null);
-   const [realLogs, setRealLogs] = useState<Array<{ summary: string; timestamp: string; type: string }>>([]);
-   const [infraMetrics, setInfraMetrics] = useState<InfraMetrics | null>(null);
-   const [metricsLoading, setMetricsLoading] = useState(true);
-   const [flags, setFeatureFlags] = useState<FeatureFlag[]>([
-     { id: "chat", name: "Community Chat", enabled: true, description: "Enable real-time match chat for users" },
-     { id: "realtime", name: "Live Stats Realtime", enabled: true, description: "Stream match updates via Supabase Realtime" },
-     { id: "onboarding", name: "Onboarding Flow", enabled: false, description: "Show welcome tour to new visitors" },
-   ]);
+const [backupModal, setBackupModal] = useState(false);
+   const [lastBackupTime, setLastBackupTime] = useState<number | null>(null);
+    const [data, setData] = useState<DevData | null>(null);
+    const [realLogs, setRealLogs] = useState<Array<{ summary: string; timestamp: string; type: string }>>([]);
+    const [infraMetrics, setInfraMetrics] = useState<InfraMetrics | null>(null);
+    const [metricsLoading, setMetricsLoading] = useState(true);
+    const [flags, setFeatureFlags] = useState<FeatureFlag[]>([
+      { id: "chat", name: "Community Chat", enabled: true, description: "Enable real-time match chat for users" },
+      { id: "realtime", name: "Live Stats Realtime", enabled: true, description: "Stream match updates via Supabase Realtime" },
+      { id: "onboarding", name: "Onboarding Flow", enabled: false, description: "Show welcome tour to new visitors" },
+    ]);
 
-   // Check backup status from localStorage
-   const checkBackupStatus = () => {
-     const stored = localStorage.getItem("hallsports_last_backup");
-     if (stored) {
-       const timestamp = parseInt(stored, 10);
-       setLastBackupTime(timestamp);
-     }
-   };
+    // Check backup status from localStorage
+    const checkBackupStatus = () => {
+      const stored = localStorage.getItem("hallsports_last_backup");
+      if (stored) {
+        const timestamp = parseInt(stored, 10);
+        const now = Date.now();
+        setLastBackupTime(timestamp);
+      }
+    };
 
    useEffect(() => {
      const timer = setTimeout(() => {
@@ -182,19 +182,8 @@ export default function DeveloperContent() {
     return modifier * a.name.localeCompare(b.name);
   });
 
-  const toggleFlag = (id: string) => {
+const toggleFlag = (id: string) => {
     setFeatureFlags(prev => prev.map(f => f.id === id ? { ...f, enabled: !f.enabled } : f));
-  };
-
-  const _formatTimeAgo = (timestamp: number) => {
-    const seconds = Math.floor((Date.now() - timestamp) / 1000);
-    if (seconds < 60) return "just now";
-    const minutes = Math.floor(seconds / 60);
-    if (minutes < 60) return `${minutes} minute${minutes !== 1 ? "s" : ""} ago`;
-    const hours = Math.floor(minutes / 60);
-    if (hours < 24) return `${hours} hour${hours !== 1 ? "s" : ""} ago`;
-    const days = Math.floor(hours / 24);
-    return `${days} day${days !== 1 ? "s" : ""} ago`;
   };
 
   if (!access) {

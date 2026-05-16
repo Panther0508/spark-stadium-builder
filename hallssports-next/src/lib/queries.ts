@@ -18,6 +18,9 @@ export interface Match {
   venue?: string;
   admin_post?: string;
   duration_minutes?: number;
+  minute?: number;
+  home_team_id?: string;
+  away_team_id?: string;
 }
 
 // Chat message types
@@ -60,12 +63,12 @@ export interface Player {
 
 const getSupabaseSafe = () => supabase;
 
-// Mock data for development
+// Mock data for development (FUTO hostel teams)
 const mockMatches: Match[] = [
   {
     id: '1',
-    home_team: 'Manchester City',
-    away_team: 'Liverpool',
+    home_team: 'Camp 1 FC',
+    away_team: 'Camp 2 United',
     home_score: 2,
     away_score: 1,
     status: 'finished',
@@ -73,12 +76,12 @@ const mockMatches: Match[] = [
     featured: true,
     is_verified: true,
     community_visible: true,
-    venue: 'Etihad Stadium',
+    venue: 'FUTO Main Field',
   },
   {
     id: '2',
-    home_team: 'Arsenal',
-    away_team: 'Chelsea',
+    home_team: 'Camp 3 Warriors',
+    away_team: 'Camp 4 Rangers',
     home_score: 1,
     away_score: 1,
     status: 'live',
@@ -86,18 +89,18 @@ const mockMatches: Match[] = [
     featured: false,
     is_verified: true,
     community_visible: true,
-    venue: 'Emirates Stadium',
+    venue: 'FUTO Training Pitch',
   },
   {
     id: '3',
-    home_team: 'Manchester United',
-    away_team: 'Tottenham',
+    home_team: 'Camp 5 Eagles',
+    away_team: 'Camp 6 Lions',
     status: 'scheduled',
     match_date: new Date(Date.now() + 86400000).toISOString(),
     featured: false,
     is_verified: true,
     community_visible: true,
-    venue: 'Old Trafford',
+    venue: 'FUTO Main Field',
   },
 ];
 

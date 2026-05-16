@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, use } from "react";
 import Link from "next/link";
 import { motion } from "framer-motion";
 import { GlassCard } from "@/components/GlassCard";
@@ -9,67 +9,54 @@ import { PageShell } from "@/components/PageShell";
 import { StatusBadge, TeamLogo } from "@/components/StatusBadge";
 import { ChevronDown, ChevronUp, Sparkles } from "lucide-react";
 
-const MOCK_LINEUP = {
+interface LineupData {
+  id: string;
+  name: string;
+  number: number;
+  position: string;
+  x: number;
+  y: number;
+}
+
+interface Formation {
+  name: string;
+  players: LineupData[];
+}
+
+interface LineupResponse {
   match: {
-    id: "mock-1",
-    home_team: "Rangers FC",
-    away_team: "Panthers United",
-    home_score: 2,
-    away_score: 1,
-    status: "live" as const,
-    minute: 78,
-    venue: "Halls Stadium",
-  },
+    id: string;
+    home_team: string;
+    away_team: string;
+    home_score?: number;
+    away_score?: number;
+    status: "live" | "scheduled" | "finished" | "half-time";
+    minute?: number;
+    venue?: string;
+  };
   formations: {
-    home: {
-      name: "4-4-2",
-      players: [
-        { id: 1, name: "Dan Miller", number: 1, position: "GK", x: 50, y: 95 },
-        { id: 2, name: "Chris Brown", number: 2, position: "DEF", x: 20, y: 80 },
-        { id: 3, name: "Tom Davis", number: 5, position: "DEF", x: 35, y: 75 },
-        { id: 4, name: "Mike Johnson", number: 6, position: "DEF", x: 65, y: 75 },
-        { id: 5, name: "Rob Lee", number: 3, position: "DEF", x: 80, y: 80 },
-        { id: 6, name: "Alex Smith", number: 7, position: "MID", x: 25, y: 55 },
-        { id: 7, name: "James Wilson", number: 8, position: "MID", x: 40, y: 50 },
-        { id: 8, name: "Sam Taylor", number: 10, position: "MID", x: 60, y: 50 },
-        { id: 9, name: "Pat King", number: 11, position: "MID", x: 75, y: 55 },
-        { id: 10, name: "Luke Adams", number: 9, position: "FWD", x: 40, y: 25 },
-        { id: 11, name: "Nick Black", number: 12, position: "FWD", x: 60, y: 25 },
-      ],
-    },
-    away: {
-      name: "4-3-3",
-      players: [
-        { id: 12, name: "Matt White", number: 1, position: "GK", x: 50, y: 5 },
-        { id: 13, name: "Ben Hall", number: 2, position: "DEF", x: 20, y: 20 },
-        { id: 14, name: "Tim Green", number: 5, position: "DEF", x: 35, y: 15 },
-        { id: 15, name: "Mark Evans", number: 6, position: "DEF", x: 65, y: 15 },
-        { id: 16, name: "Ethan Moore", number: 3, position: "DEF", x: 80, y: 20 },
-        { id: 17, name: "Jack Hill", number: 7, position: "MID", x: 30, y: 45 },
-        { id: 18, name: "Ryan Clark", number: 8, position: "MID", x: 50, y: 40 },
-        { id: 19, name: "Noah Young", number: 10, position: "MID", x: 70, y: 45 },
-        { id: 20, name: "Julian Roberts", number: 11, position: "FWD", x: 15, y: 30 },
-        { id: 21, name: "Mason Wright", number: 9, position: "FWD", x: 50, y: 20 },
-        { id: 22, name: "Logan Scott", number: 12, position: "FWD", x: 85, y: 30 },
-      ],
-    },
-  },
-  adminPost: "Rangers dominated the first half with superior possession. Panthers came back strong in the second half but couldn't find the equalizer. A controversial red card changed the game.",
-  aiSummary: "A tightly contested battle with midfield dominance from Rangers. The 78th minute red card proved decisive as Panthers pushed for an equalizer but ultimately fell short. James Wilson's brace secured the crucial three points.",
-  keyMoments: [
-    { id: 1, type: "goal", minute: 23, player: "James Wilson", team: "home" },
-    { id: 2, type: "yellow_card", minute: 34, player: "Tom Davis", team: "home" },
-    { id: 3, type: "goal", minute: 45, player: "Alex Smith", team: "away" },
-    { id: 4, type: "red_card", minute: 58, player: "Tom Davis", team: "home" },
-    { id: 5, type: "goal", minute: 67, player: "James Wilson", team: "home" },
-  ],
-};
+    home: Formation;
+    away: Formation;
+  };
+  adminPost?: string;
+  aiSummary?: string;
+  keyMoments: Array<{
+    id: string;
+    type: string;
+    minute: number;
+    player: string;
+    team: string;
+  }>;
+}
 
 
 
 
-export default function LineupPage() {
-  const [lineup, setLineup] = useState<typeof MOCK_LINEUP | null>(null);
+export default function LineupPage({ params }: { params: Promise<{ id: string }> }) {
+  const resolvedParams = use(params);
+  const matchId = resolvedParams.id;
+  
+  const [lineup, setLineup] = useState<LineupResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [showOriginal, setShowOriginal] = useState(false);
@@ -77,8 +64,10 @@ export default function LineupPage() {
   useEffect(() => {
     const fetchLineup = async () => {
       try {
-        await new Promise(resolve => setTimeout(resolve, 800));
-        setLineup(MOCK_LINEUP);
+        const res = await fetch(`/api/lineup?match_id=${matchId}`);
+        if (!res.ok) throw new Error('Failed to fetch lineup');
+        const data = await res.json();
+        setLineup(data);
       } catch (e) {
         setError(e instanceof Error ? e.message : "Failed to load lineup");
       } finally {
@@ -86,7 +75,7 @@ export default function LineupPage() {
       }
     };
     fetchLineup();
-  }, []);
+  }, [matchId]);
 
   if (loading) {
     return (
@@ -180,21 +169,24 @@ export default function LineupPage() {
           </div>
         </GlassCard>
 
-        {/* AI Match Insight */}
+        {lineup.aiSummary && (
         <GlassCard className="p-4">
           <div className="flex items-center gap-2 mb-3">
             <Sparkles className="h-5 w-5 text-primary" />
             <h3 className="font-bold">AI Insight</h3>
           </div>
           <p className="text-sm mb-4">{showOriginal ? lineup.adminPost : lineup.aiSummary}</p>
-          <button
-            onClick={() => setShowOriginal(!showOriginal)}
-            className="flex items-center gap-1 text-xs text-primary"
-          >
-            {showOriginal ? "Show AI Summary" : "Show Original Post"}
-            {showOriginal ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
-          </button>
+          {lineup.adminPost && (
+            <button
+              onClick={() => setShowOriginal(!showOriginal)}
+              className="flex items-center gap-1 text-xs text-primary"
+            >
+              {showOriginal ? "Show AI Summary" : "Show Original Post"}
+              {showOriginal ? <ChevronUp className="h-3 w-3" /> : <ChevronDown className="h-3 w-3" />}
+            </button>
+          )}
         </GlassCard>
+        )}
 
         {/* Key Moments */}
         <GlassCard className="p-4">
